@@ -1,41 +1,76 @@
-### Time Tracking
+<div align="center">
+  <p>
+    <img src="docs/assets/TIME_TRACKING_APP_LOGO.png" alt="Time Tracking App Logo" width="164"/>
+  </p>
+  <h1>Time Tracking (Frappe App)</h1>
+</div>
 
-Project-based time tracking for companies: log billable hours, generate timesheets, and export reports for invoicing.
+Time Tracking is a Frappe app for web-based time tracking and timesheet management.
 
-### Installation
+Teams can record work hours, manage timesheets, generate reports, and export data for invoicing and payroll workflows.
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+
+
+## Supported Versions
+
+| Frappe | Support Status |
+|--------|----------------|
+| v16 Beta | Coming soon... |
+| v15 | Coming soon... |
+
+## Installation (Frappe Cloud)
+
+The app can be installed directly via Frappe Cloud:
+
+1. Open the Frappe Cloud dashboard at <https://frappecloud.com/dashboard/#/sites>
+2. Click **"New Site"** to create a new site
+3. In the step **"Select apps to install"**:
+   - Choose the desired Frappe version
+   - Enable the app **`Time Tracking`**
+4. Complete the wizard to create the site
+
+## Installation (Self-Hosted)
+
+Add the app to your bench environment:
 
 ```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app time_tracking
+bench get-app https://github.com/Rocket-Quack/time_tracking.git --branch version-15
 ```
 
-### Contributing
-
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+Install requirements:
 
 ```bash
-cd apps/time_tracking
-pre-commit install
+bench setup requirements
 ```
 
-Pre-commit is configured to use the following tools for checking and formatting your code:
+Install the app on a site:
 
-- ruff
-- eslint
-- prettier
-- pyupgrade
+```bash
+bench --site yoursite.com install-app time_tracking
+```
 
-### CI
+Run migrations:
 
-This app can use GitHub Actions for CI. The following workflows are configured:
+```bash
+bench --site yoursite.com migrate
+```
 
-- CI: Installs this app and runs unit tests on every push to `develop` branch.
-- Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
+## Community Support
 
+Please create a ticket via [Issues](https://github.com/Rocket-Quack/erpnext_sumup/issues) for:
+
+- **Bug Reports & Feature Requests** 
+- **Questions about general use**
+
+## Trademark Notice
+
+**Frappe** is a trademark of **Frappe Technologies Pvt. Ltd.**
+
+This project is an independent and unofficial app and is not affiliated with Frappe Technologies.
+It is not operated, supported, or endorsed by Frappe Technologies.
+
+The name Frappe is used only to describe technical compatibility with the respective framework.
 
 ### License
 
-mit
+See the LICENSE file for more information.

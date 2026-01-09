@@ -4,8 +4,12 @@ name: CI
 on:
   push:
     branches:
+      - version-15
       - develop
   pull_request:
+    branches:
+      - version-15
+      - develop
 
 concurrency:
   group: develop-time_tracking-${{ github.event.number }}
@@ -47,7 +51,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Setup Node
         uses: actions/setup-node@v3
@@ -76,13 +80,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: Update Package Repository
+        run: sudo apt update
+
       - name: Install MariaDB Client
-        run: sudo apt-get install mariadb-client-10.6
+        run: sudo apt-get install mariadb-client
 
       - name: Setup
         run: |
           pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          bench init --frappe-branch version-15 --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
@@ -96,11 +103,16 @@ jobs:
           bench build
         env:
           CI: 'Yes'
+          
+      - name: Migrate 
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench --site test_site migrate
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app time_tracking
+          bench --site test_site run-tests --app time_tracking --skip-test-records
         env:
           TYPE: server

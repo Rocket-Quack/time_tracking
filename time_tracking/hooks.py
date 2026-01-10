@@ -4,6 +4,9 @@ app_publisher = "RocketQuackIT"
 app_description = "Project-based time tracking for companies: log billable hours, generate timesheets, and export reports for invoicing."
 app_email = "contact@rocketquack.eu"
 app_license = "mit"
+app_icon = "fa fa-clock-o"
+app_color = "#0f6e74"
+app_logo_url = "/assets/time_tracking/images/time-tracking-logo.png"
 
 # Apps
 # ------------------
@@ -11,15 +14,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "time_tracking",
-# 		"logo": "/assets/time_tracking/logo.png",
-# 		"title": "Time Tracking",
-# 		"route": "/time_tracking",
-# 		"has_permission": "time_tracking.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "time_tracking",
+		"logo": "/assets/time_tracking/images/time-tracking-logo.png",
+		"title": "Time Tracking",
+		"route": "/app/time-tracking",
+	}
+]
 
 # Includes in <head>
 # ------------------

@@ -4,10 +4,32 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, formatdate, getdate
 
+DAY_FIELDS = [
+    "monday_hours",
+    "tuesday_hours",
+    "wednesday_hours",
+    "thursday_hours",
+    "friday_hours",
+    "saturday_hours",
+    "sunday_hours",
+]
+
 
 def get_context(context):
     context.no_cache = True
     return {}
+
+
+def _is_admin():
+    roles = frappe.get_roles(frappe.session.user)
+    return "System Manager" in roles or "Time Tracking Admin" in roles
+
+
+def _require_profile(user):
+    profile_name = _get_profile_name(user)
+    if not profile_name:
+        frappe.throw(_("Time Tracking Profile is required."))
+    return profile_name
 
 
 def _get_week_info(week_start_date):
@@ -22,12 +44,6 @@ def _get_week_info(week_start_date):
         warning = _("Week start date should be a Monday.")
 
     return calendar_week, calendar_year, end_date, period_label, warning
-
-
-def _get_existing_doc_name(user, week_start_date):
-    return frappe.db.get_value(
-        "Weekly Booking Data", {"user": user, "week_start_date": week_start_date}, "name"
-    )
 
 
 def _coerce_hours(value, fieldname):
@@ -68,43 +84,7 @@ def _get_month_total_hours(user, week_start_date):
     month_start = start_date.replace(day=1)
     last_day = calendar.monthrange(month_start.year, month_start.month)[1]
     month_end = month_start.replace(day=last_day)
-    overlap_start = add_days(month_start, -6)
-
-    week_docs = frappe.get_all(
-        "Weekly Booking Data",
-        filters={
-            "user": user,
-            "week_start_date": ["between", [overlap_start, month_end]],
-        },
-        pluck="name",
-    )
-
-    if not week_docs:
-        return 0
-
-    total_minutes = 0
-    day_fields = [
-        "monday_hours",
-        "tuesday_hours",
-        "wednesday_hours",
-        "thursday_hours",
-        "friday_hours",
-        "saturday_hours",
-        "sunday_hours",
-    ]
-
-    for name in week_docs:
-        doc = frappe.get_doc("Weekly Booking Data", name)
-        week_start = getdate(doc.week_start_date)
-        for row in doc.bookings:
-            for idx, field in enumerate(day_fields):
-                hours = flt(row.get(field))
-                if not hours:
-                    continue
-                day_date = add_days(week_start, idx)
-                if month_start <= day_date <= month_end:
-                    total_minutes += hours * 60
-
+    total_minutes = _get_time_booking_minutes(user, month_start, month_end)
     return total_minutes / 60
 
 
@@ -112,10 +92,24 @@ def _get_profile_name(user):
     return frappe.db.get_value("Time Tracking Profile", {"user": user}, "name")
 
 
-def _get_assigned_projects(user):
+def _get_time_booking_minutes(user, start_date, end_date):
     profile_name = _get_profile_name(user)
     if not profile_name:
-        return []
+        return 0
+
+    durations = frappe.get_all(
+        "Time Booking",
+        filters={
+            "time_tracking_profile": profile_name,
+            "date": ["between", [start_date, end_date]],
+        },
+        pluck="duration_minutes",
+    )
+    return sum(flt(duration) for duration in durations)
+
+
+def _get_assigned_projects(user):
+    profile_name = _require_profile(user)
 
     assignments = frappe.get_all(
         "Time Tracking Profile Project",
@@ -140,6 +134,50 @@ def _get_assigned_projects(user):
     return [project_map[name] for name in project_names if name in project_map]
 
 
+def _get_assigned_project_names(user):
+    return {project.name for project in _get_assigned_projects(user)}
+
+
+def _get_time_booking_rows(user, week_start_date):
+    profile_name = _require_profile(user)
+
+    week_start = getdate(week_start_date)
+    week_end = add_days(week_start, 6)
+
+    bookings = frappe.get_all(
+        "Time Booking",
+        filters={
+            "time_tracking_profile": profile_name,
+            "date": ["between", [week_start, week_end]],
+        },
+        fields=["project", "notes", "date", "duration_minutes"],
+    )
+    if not bookings:
+        return []
+
+    day_fields = DAY_FIELDS
+    rows = {}
+
+    for booking in bookings:
+        if not booking.project or not booking.date:
+            continue
+
+        note = booking.notes or ""
+        key = (booking.project, note)
+
+        row = rows.get(key)
+        if not row:
+            row = {"project": booking.project, "note": note}
+            row.update({field: 0 for field in day_fields})
+            rows[key] = row
+
+        day_index = (getdate(booking.date) - week_start).days
+        if 0 <= day_index < len(day_fields):
+            row[day_fields[day_index]] += flt(booking.duration_minutes) / 60
+
+    return list(rows.values())
+
+
 @frappe.whitelist()
 def get_weekly_booking(user=None, week_start_date=None):
     if not week_start_date:
@@ -148,28 +186,22 @@ def get_weekly_booking(user=None, week_start_date=None):
     if not user:
         user = frappe.session.user
 
-    if user != frappe.session.user and not frappe.has_role("System Manager"):
+    if user != frappe.session.user and not _is_admin():
         frappe.throw(_("Not permitted to load bookings for another user."))
 
-    doc_name = _get_existing_doc_name(user, week_start_date)
-    if doc_name:
-        doc = frappe.get_doc("Weekly Booking Data", doc_name)
-    else:
-        doc = frappe.new_doc("Weekly Booking Data")
-        doc.user = user
-        doc.week_start_date = week_start_date
+    _require_profile(user)
 
     calendar_week, calendar_year, week_end_date, period_label, warning = _get_week_info(
         week_start_date
     )
-    doc.calendar_week = calendar_week
-    doc.calendar_year = calendar_year
-    doc.week_end_date = week_end_date
-    doc.period_label = period_label
 
     return {
-        "doc": doc.as_dict(),
+        "rows": _get_time_booking_rows(user, week_start_date),
         "warning": warning,
+        "calendar_week": calendar_week,
+        "calendar_year": calendar_year,
+        "week_end_date": week_end_date,
+        "period_label": period_label,
         "increment_minutes": _get_increment_minutes(),
         "day_label_date_format": _get_day_label_date_format(),
         "weekly_target_hours": _get_weekly_target_hours(user),
@@ -184,8 +216,10 @@ def get_assigned_projects(user=None):
     if not user:
         user = frappe.session.user
 
-    if user != frappe.session.user and not frappe.has_role("System Manager"):
+    if user != frappe.session.user and not _is_admin():
         frappe.throw(_("Not permitted to load projects for another user."))
+
+    _require_profile(user)
 
     return _get_assigned_projects(user)
 
@@ -196,7 +230,6 @@ def save_weekly_booking(data):
         frappe.throw(_("No data received."))
 
     payload = frappe.parse_json(data)
-    name = payload.get("name")
     user = payload.get("user") or frappe.session.user
     week_start_date = payload.get("week_start_date")
     rows = payload.get("rows") or []
@@ -204,43 +237,20 @@ def save_weekly_booking(data):
     if not week_start_date:
         frappe.throw(_("Week start date is required."))
 
-    if user != frappe.session.user and not frappe.has_role("System Manager"):
+    if user != frappe.session.user and not _is_admin():
         frappe.throw(_("Not permitted to save bookings for another user."))
 
-    if name:
-        doc = frappe.get_doc("Weekly Booking Data", name)
-    else:
-        existing_name = _get_existing_doc_name(user, week_start_date)
-        doc = frappe.get_doc("Weekly Booking Data", existing_name) if existing_name else None
+    profile_name = _require_profile(user)
+    week_start = getdate(week_start_date)
+    week_end = add_days(week_start, 6)
 
-    if doc and doc.user and doc.user != user and not frappe.has_role("System Manager"):
-        frappe.throw(_("Not permitted to update another user's booking."))
+    hour_fields = DAY_FIELDS
+    assigned_project_names = None
+    if not _is_admin():
+        assigned_project_names = _get_assigned_project_names(user)
 
-    if not doc:
-        doc = frappe.new_doc("Weekly Booking Data")
-
-    doc.user = user
-    doc.week_start_date = week_start_date
-
-    calendar_week, calendar_year, week_end_date, period_label, warning = _get_week_info(
-        week_start_date
-    )
-    doc.calendar_week = calendar_week
-    doc.calendar_year = calendar_year
-    doc.week_end_date = week_end_date
-    doc.period_label = period_label
-
-    doc.bookings = []
-
-    hour_fields = [
-        "monday_hours",
-        "tuesday_hours",
-        "wednesday_hours",
-        "thursday_hours",
-        "friday_hours",
-        "saturday_hours",
-        "sunday_hours",
-    ]
+    increment = _get_increment_minutes()
+    time_bookings = []
 
     for row in rows:
         row_project = row.get("project")
@@ -250,7 +260,15 @@ def save_weekly_booking(data):
         if not row_project and not row_note and not any(hours.values()):
             continue
 
+        if any(hours.values()) and not row_project:
+            frappe.throw(_("Project is required for bookings."))
+
         if row_project:
+            if assigned_project_names is not None and row_project not in assigned_project_names:
+                frappe.throw(
+                    _("Project {0} is not assigned to your profile.").format(row_project)
+                )
+
             if not frappe.db.exists("Time Tracking Project", row_project):
                 frappe.throw(_("Project {0} does not exist.").format(row_project))
 
@@ -260,10 +278,51 @@ def save_weekly_booking(data):
                     _("Project {0} is a group and cannot be booked.").format(row_project)
                 )
 
-        row_dict = {"project": row_project, "note": row_note}
-        row_dict.update(hours)
-        doc.append("bookings", row_dict)
+        for idx, field in enumerate(hour_fields):
+            minutes = int(round(flt(hours.get(field)) * 60))
+            if minutes <= 0:
+                continue
+            if minutes % increment:
+                frappe.throw(
+                    _("Duration must be a multiple of {0} minutes.").format(increment)
+                )
 
-    doc.save()
+            time_bookings.append(
+                {
+                    "date": add_days(week_start, idx),
+                    "project": row_project,
+                    "notes": row_note,
+                    "duration_minutes": minutes,
+                }
+            )
 
-    return {"status": "ok", "name": doc.name, "warning": warning}
+    frappe.db.delete(
+        "Time Booking",
+        {
+            "time_tracking_profile": profile_name,
+            "date": ["between", [week_start, week_end]],
+        },
+    )
+
+    for booking in time_bookings:
+        doc = frappe.new_doc("Time Booking")
+        doc.time_tracking_profile = profile_name
+        doc.date = booking["date"]
+        doc.project = booking["project"]
+        doc.notes = booking.get("notes")
+        doc.duration_minutes = booking["duration_minutes"]
+        doc.insert()
+
+    calendar_week, calendar_year, week_end_date, period_label, warning = _get_week_info(
+        week_start_date
+    )
+
+    return {
+        "status": "ok",
+        "warning": warning,
+        "calendar_week": calendar_week,
+        "calendar_year": calendar_year,
+        "week_end_date": week_end_date,
+        "period_label": period_label,
+        "monthly_total_hours": _get_month_total_hours(user, week_start_date),
+    }

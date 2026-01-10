@@ -81,7 +81,6 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     $(styles).appendTo(page.body);
 
     const state = {
-        doc_name: "",
         projects_loaded: false,
         projects: [],
         increment_minutes: 15,
@@ -209,13 +208,22 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     function buildProjectOptions(selected) {
         const escape = frappe.utils.escape_html;
         const options = [`<option value=""></option>`];
+        let selectedFound = false;
 
         state.projects.forEach((project) => {
             const value = escape(project.name);
             const label = escape(project.project_name || project.name);
             const selectedAttr = project.name === selected ? " selected" : "";
+            if (selectedAttr) {
+                selectedFound = true;
+            }
             options.push(`<option value="${value}"${selectedAttr}>${label}</option>`);
         });
+
+        if (selected && !selectedFound) {
+            const value = escape(selected);
+            options.push(`<option value="${value}" selected>${value}</option>`);
+        }
 
         return options.join("");
     }
@@ -340,7 +348,6 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             },
             callback: function (r) {
                 const message = r.message || {};
-                const doc = message.doc || {};
                 if (message.increment_minutes) {
                     setIncrementMinutes(message.increment_minutes);
                 }
@@ -353,21 +360,15 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 state.overtime_balance_minutes = Math.round(
                     Number(message.overtime_balance_hours || 0) * 60
                 );
-                state.doc_name = doc.name || "";
-
-                if (doc.week_start_date) {
-                    $weekStart.val(doc.week_start_date);
-                }
-
-                if (doc.calendar_week && doc.calendar_year) {
-                    $calendarWeek.val(`${doc.calendar_week} / ${doc.calendar_year}`);
+                if (message.calendar_week && message.calendar_year) {
+                    $calendarWeek.val(`${message.calendar_week} / ${message.calendar_year}`);
                 } else {
-                    $calendarWeek.val(doc.calendar_week || "");
+                    $calendarWeek.val(message.calendar_week || "");
                 }
-                $periodLabel.val(doc.period_label || "");
+                $periodLabel.val(message.period_label || "");
                 updateDayHeaders();
 
-                const rows = doc.bookings || [];
+                const rows = message.rows || [];
                 state.loaded_week_total_minutes = calculateWeekMinutes(rows);
                 if (!state.projects_loaded) {
                     loadProjects(() => renderRows(rows));
@@ -569,7 +570,6 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         }
 
         const payload = {
-            name: state.doc_name,
             user: $user.val(),
             week_start_date: weekStart,
             rows: collectRows(),
@@ -582,9 +582,14 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             },
             callback: function (r) {
                 const message = r.message || {};
-                if (message.name) {
-                    state.doc_name = message.name;
+                const weekMinutes = calculateWeekMinutes(collectRows());
+                state.loaded_week_total_minutes = weekMinutes;
+                if (message.monthly_total_hours !== undefined) {
+                    state.month_total_minutes = Math.round(
+                        Number(message.monthly_total_hours || 0) * 60
+                    );
                 }
+                updateTotals();
 
                 frappe.msgprint({
                     title: __("Saved"),

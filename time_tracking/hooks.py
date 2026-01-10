@@ -155,11 +155,7 @@ fixtures = [
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {
-	"daily": [
-		"time_tracking.time_tracking.weekly_booking_utils.ensure_weekly_booking_documents"
-	]
-}
+# scheduler_events = {}
 
 # Testing
 # -------

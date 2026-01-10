@@ -87,10 +87,7 @@ app_license = "mit"
 
 # Fixtures
 # --------
-
-fixtures = [
-	{"doctype": "Workspace", "filters": [["name", "in", ["Time Tracking"]]]}
-]
+# Fixtures are managed via JSON files in /fixtures and synced on migrate.
 
 # Uninstallation
 # ------------

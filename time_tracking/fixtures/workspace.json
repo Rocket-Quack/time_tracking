@@ -1,0 +1,235 @@
+[
+  {
+    "charts": [],
+    "content": "[{\"id\":\"time_tracking_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h1\\\">Time Tracking</span><div class=\\\"text-muted\\\">Log hours, plan weeks, and track targets</div>\",\"col\":12}},{\"id\":\"time_tracking_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_quickstart_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Quick Start\",\"col\":4}},{\"id\":\"time_tracking_team_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Team Setup\",\"col\":4}},{\"id\":\"time_tracking_settings_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}}]",
+    "creation": "2026-01-09 00:00:00.000000",
+    "custom_blocks": [],
+    "docstatus": 0,
+    "doctype": "Workspace",
+    "for_user": "",
+    "hide_custom": 0,
+    "icon": "clock",
+    "idx": 0,
+    "indicator_color": "",
+    "is_hidden": 0,
+    "label": "Time Tracking",
+    "links": [
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Quick Start",
+        "link_count": 3,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Weekly Booking",
+        "link_count": 0,
+        "link_to": "weekly-booking",
+        "link_type": "Page",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Booking",
+        "link_count": 0,
+        "link_to": "Time Booking",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "My Project Access",
+        "link_count": 0,
+        "link_to": "Time Tracking Profile",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Team Setup",
+        "link_count": 2,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Project",
+        "link_count": 0,
+        "link_to": "Time Tracking Project",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Profile",
+        "link_count": 0,
+        "link_to": "Time Tracking Profile",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Settings",
+        "link_count": 1,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Settings",
+        "link_count": 0,
+        "link_to": "Time Tracking Settings",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      }
+    ],
+    "modified": "2026-01-09 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Time Tracking",
+    "name": "Time Tracking",
+    "number_cards": [],
+    "owner": "Administrator",
+    "parent_page": "Modules",
+    "public": 1,
+    "quick_lists": [],
+    "restrict_to_domain": "",
+    "roles": [],
+    "sequence_id": 1.0,
+    "shortcuts": [],
+    "title": "Time Tracking"
+  },
+  {
+    "charts": [],
+    "content": "[{\"id\":\"time_tracking_admin_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h1\\\">Time Tracking Admin</span><div class=\\\"text-muted\\\">Configuration and oversight</div>\",\"col\":12}},{\"id\":\"time_tracking_admin_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_admin_config_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Configuration\",\"col\":4}},{\"id\":\"time_tracking_admin_master_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Master Data\",\"col\":4}},{\"id\":\"time_tracking_admin_ops_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Operations\",\"col\":4}}]",
+    "creation": "2026-01-10 00:00:00.000000",
+    "custom_blocks": [],
+    "docstatus": 0,
+    "doctype": "Workspace",
+    "for_user": "",
+    "hide_custom": 0,
+    "icon": "settings",
+    "idx": 0,
+    "indicator_color": "",
+    "is_hidden": 0,
+    "label": "Time Tracking Admin",
+    "links": [
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Configuration",
+        "link_count": 1,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Settings",
+        "link_count": 0,
+        "link_to": "Time Tracking Settings",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Master Data",
+        "link_count": 2,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Project",
+        "link_count": 0,
+        "link_to": "Time Tracking Project",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Tracking Profile",
+        "link_count": 0,
+        "link_to": "Time Tracking Profile",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Operations",
+        "link_count": 2,
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Card Break"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Time Booking",
+        "link_count": 0,
+        "link_to": "Time Booking",
+        "link_type": "DocType",
+        "onboard": 0,
+        "type": "Link"
+      },
+      {
+        "hidden": 0,
+        "is_query_report": 0,
+        "label": "Weekly Booking",
+        "link_count": 0,
+        "link_to": "weekly-booking",
+        "link_type": "Page",
+        "onboard": 0,
+        "type": "Link"
+      }
+    ],
+    "modified": "2026-01-10 00:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Time Tracking",
+    "name": "Time Tracking Admin",
+    "number_cards": [],
+    "owner": "Administrator",
+    "parent_page": "Modules",
+    "public": 1,
+    "quick_lists": [],
+    "restrict_to_domain": "",
+    "roles": [
+      {
+        "role": "System Manager"
+      },
+      {
+        "role": "Time Tracking Admin"
+      }
+    ],
+    "sequence_id": 2.0,
+    "shortcuts": [],
+    "title": "Time Tracking Admin"
+  }
+]

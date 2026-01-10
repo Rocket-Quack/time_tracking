@@ -15,6 +15,12 @@
   },
   {
    "role": "Desk User"
+  },
+  {
+   "role": "Time Tracking Admin"
+  },
+  {
+   "role": "Time Tracking Employee"
   }
  ],
  "standard": "Yes",

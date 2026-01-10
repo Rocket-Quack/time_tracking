@@ -46,13 +46,13 @@ bench setup requirements
 Install the app on a site:
 
 ```bash
-bench --site yoursite.com install-app time_tracking
+bench --site time-tracking.yoursite.com install-app time_tracking
 ```
 
 Run migrations:
 
 ```bash
-bench --site yoursite.com migrate
+bench --site time-tracking.yoursite.com migrate
 ```
 
 ## Community Support

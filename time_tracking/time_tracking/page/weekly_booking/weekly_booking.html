@@ -1,0 +1,43 @@
+<!-- jinja -->
+<div class="weekly-booking weekly-booking-page">
+    <div id="weekly-booking-header" class="row">
+        <div class="col-sm-3">
+            <div class="form-group">
+                <label for="weekly-booking-user">{{ _("User") }}</label>
+                <input type="text" id="weekly-booking-user" class="form-control" readonly>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <label for="weekly-booking-week-start">{{ _("Week Start") }}</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <button class="btn btn-default" type="button" id="weekly-booking-prev">&laquo;</button>
+                    </div>
+                    <input type="text" id="weekly-booking-week-start" class="form-control" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-default" type="button" id="weekly-booking-next">&raquo;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <div class="form-group">
+                <label for="weekly-booking-calendar-week">{{ _("Calendar Week") }}</label>
+                <input type="text" id="weekly-booking-calendar-week" class="form-control" readonly>
+            </div>
+        </div>
+        <div class="col-sm-3">
+            <div class="form-group">
+                <label for="weekly-booking-period-label">{{ _("Period") }}</label>
+                <input type="text" id="weekly-booking-period-label" class="form-control" readonly>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12" id="weekly-booking-table"></div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12" id="weekly-booking-summary"></div>
+    </div>
+</div>

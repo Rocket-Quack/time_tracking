@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "creation": "2026-01-09 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "project",
+  "note",
+  "monday_hours",
+  "tuesday_hours",
+  "wednesday_hours",
+  "thursday_hours",
+  "friday_hours",
+  "saturday_hours",
+  "sunday_hours"
+ ],
+ "fields": [
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Time Tracking Project"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  },
+  {
+   "fieldname": "monday_hours",
+   "fieldtype": "Float",
+   "label": "Monday"
+  },
+  {
+   "fieldname": "tuesday_hours",
+   "fieldtype": "Float",
+   "label": "Tuesday"
+  },
+  {
+   "fieldname": "wednesday_hours",
+   "fieldtype": "Float",
+   "label": "Wednesday"
+  },
+  {
+   "fieldname": "thursday_hours",
+   "fieldtype": "Float",
+   "label": "Thursday"
+  },
+  {
+   "fieldname": "friday_hours",
+   "fieldtype": "Float",
+   "label": "Friday"
+  },
+  {
+   "fieldname": "saturday_hours",
+   "fieldtype": "Float",
+   "label": "Saturday"
+  },
+  {
+   "fieldname": "sunday_hours",
+   "fieldtype": "Float",
+   "label": "Sunday"
+  }
+ ],
+ "idx": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-01-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "Weekly Booking Row",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "track_changes": 1
+}

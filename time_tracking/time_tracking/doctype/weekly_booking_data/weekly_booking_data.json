@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:WB-{user}-{week_start_date}",
+ "creation": "2026-01-09 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "week_start_date",
+  "week_end_date",
+  "calendar_week",
+  "calendar_year",
+  "period_label",
+  "bookings"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "week_start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Week Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "week_end_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Week End",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_week",
+   "fieldtype": "Int",
+   "label": "Calendar Week",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calendar_year",
+   "fieldtype": "Int",
+   "label": "Calendar Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "period_label",
+   "fieldtype": "Data",
+   "label": "Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bookings",
+   "fieldtype": "Table",
+   "label": "Bookings",
+   "options": "Weekly Booking Row"
+  }
+ ],
+ "icon": "fa fa-calendar",
+ "idx": 1,
+ "is_submittable": 0,
+ "links": [],
+ "modified": "2026-01-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "Weekly Booking Data",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "if_owner": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Desk User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "user,week_start_date",
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "week_start_date",
+ "track_changes": 1
+}

@@ -85,6 +85,13 @@ app_license = "mit"
 # before_install = "time_tracking.install.before_install"
 # after_install = "time_tracking.install.after_install"
 
+# Fixtures
+# --------
+
+fixtures = [
+	{"doctype": "Workspace", "filters": [["name", "in", ["Time Tracking"]]]}
+]
+
 # Uninstallation
 # ------------
 
@@ -148,23 +155,11 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"time_tracking.tasks.all"
-# 	],
-# 	"daily": [
-# 		"time_tracking.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"time_tracking.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"time_tracking.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"time_tracking.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"time_tracking.time_tracking.weekly_booking_utils.ensure_weekly_booking_documents"
+	]
+}
 
 # Testing
 # -------
@@ -246,4 +241,3 @@ app_license = "mit"
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-

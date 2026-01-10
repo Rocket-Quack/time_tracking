@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-01-09 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "booking_rules_section",
+  "weekly_booking_day_label_format",
+  "time_booking_increment_minutes"
+ ],
+ "fields": [
+  {
+   "fieldname": "booking_rules_section",
+   "fieldtype": "Section Break",
+   "label": "Booking Rules"
+  },
+  {
+   "default": "DD.MM.YYYY",
+   "description": "Date format for day labels in Weekly Booking (Moment.js format).",
+   "fieldname": "weekly_booking_day_label_format",
+   "fieldtype": "Data",
+   "label": "Weekly Booking Day Label Format"
+  },
+  {
+   "default": "15",
+   "description": "Time bookings are validated or rounded to this increment in minutes.",
+   "fieldname": "time_booking_increment_minutes",
+   "fieldtype": "Int",
+   "label": "Time Booking Increment (Minutes)",
+   "min_value": "1"
+  }
+ ],
+ "icon": "fa fa-cog",
+ "idx": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-01-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "Time Tracking Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -76,7 +76,8 @@
   {
    "fieldname": "overtime_balance_hours",
    "fieldtype": "Float",
-   "label": "Overtime Balance (Hours)"
+   "label": "Overtime Balance (Hours)",
+   "read_only": 1
   }
  ],
  "icon": "fa fa-clock-o",

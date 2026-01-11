@@ -10,6 +10,7 @@
  "engine": "InnoDB",
  "field_order": [
   "project_name",
+  "is_internal",
   "parent_time_tracking_project",
   "is_group",
   "lft",
@@ -24,6 +25,13 @@
    "label": "Project Name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_internal",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Internal Project"
   },
   {
    "fieldname": "parent_time_tracking_project",
@@ -120,6 +128,10 @@
   {
    "read": 1,
    "role": "Time Tracking Employee"
+  },
+  {
+   "read": 1,
+   "role": "Time Tracking Manager"
   }
  ],
  "quick_entry": 1,

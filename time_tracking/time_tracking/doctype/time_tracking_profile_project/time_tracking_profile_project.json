@@ -12,6 +12,7 @@
   {
    "fieldname": "project",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Project",
    "options": "Time Tracking Project",
    "reqd": 1
@@ -20,6 +21,7 @@
    "default": "1",
    "fieldname": "active",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Active"
   }
  ],

@@ -12,8 +12,13 @@
   "project_access_section",
   "project_assignments",
   "targets_section",
+  "target_period",
   "weekly_target_hours",
   "monthly_target_hours",
+  "target_adjustments_section",
+  "target_adjustments",
+  "billing_section",
+  "hourly_rate",
   "balances_section",
   "vacation_days_per_year",
   "overtime_balance_hours"
@@ -53,15 +58,54 @@
    "label": "Targets"
   },
   {
+   "default": "Weekly",
+   "fieldname": "target_period",
+   "fieldtype": "Select",
+   "label": "Target Period",
+   "options": "Weekly\nMonthly",
+   "read_only_depends_on": "eval:!doc.__islocal || (!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin'))",
+   "reqd": 1
+  },
+  {
    "default": "40",
    "fieldname": "weekly_target_hours",
    "fieldtype": "Float",
-   "label": "Weekly Target Hours"
+   "label": "Weekly Target Hours",
+   "depends_on": "eval:doc.target_period === 'Weekly'",
+   "mandatory_depends_on": "eval:doc.__islocal && doc.target_period === 'Weekly'",
+   "read_only_depends_on": "eval:!doc.__islocal || (!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin'))"
   },
   {
    "fieldname": "monthly_target_hours",
    "fieldtype": "Float",
-   "label": "Monthly Target Hours"
+   "label": "Monthly Target Hours",
+   "depends_on": "eval:doc.target_period === 'Monthly'",
+   "mandatory_depends_on": "eval:doc.__islocal && doc.target_period === 'Monthly'",
+   "read_only_depends_on": "eval:!doc.__islocal || (!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin'))"
+  },
+  {
+   "fieldname": "target_adjustments_section",
+   "fieldtype": "Section Break",
+   "label": "Target Adjustments"
+  },
+  {
+   "fieldname": "target_adjustments",
+   "fieldtype": "Table",
+   "label": "Target Adjustments",
+   "options": "Time Tracking Target Adjustment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing"
+  },
+  {
+   "fieldname": "hourly_rate",
+   "fieldtype": "Float",
+   "label": "Hourly Rate",
+   "permlevel": 2,
+   "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
   },
   {
    "fieldname": "balances_section",
@@ -71,12 +115,16 @@
   {
    "fieldname": "vacation_days_per_year",
    "fieldtype": "Float",
-   "label": "Vacation Days Per Year"
+   "in_list_view": 1,
+   "label": "Vacation Days Per Year",
+   "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
   },
   {
    "fieldname": "overtime_balance_hours",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Overtime Balance (Hours)",
+   "permlevel": 1,
    "read_only": 1
   }
  ],
@@ -89,44 +137,110 @@
  "name": "Time Tracking Profile",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
+  "permissions": [
+   {
+    "create": 1,
+    "delete": 1,
    "email": 1,
    "export": 1,
    "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
+    "role": "System Manager",
+    "share": 1,
+    "write": 1
+   },
+   {
+    "create": 1,
+    "delete": 1,
    "email": 1,
    "export": 1,
    "import": 1,
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Time Tracking Admin",
-   "share": 1,
-   "write": 1
-  },
+    "role": "Time Tracking Admin",
+    "share": 1,
+    "write": 1
+   },
+   {
+    "read": 1,
+    "report": 1,
+    "role": "Time Tracking Manager"
+   },
+   {
+    "read": 1,
+    "role": "Desk User",
+    "write": 1
+   },
   {
    "read": 1,
-   "role": "Desk User",
+   "role": "Time Tracking Employee",
    "write": 1
   },
   {
    "read": 1,
    "role": "Time Tracking Employee",
-   "write": 1
-  }
- ],
+   "permlevel": 1
+  },
+   {
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "import": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "System Manager",
+    "share": 1,
+    "write": 1,
+    "permlevel": 1
+   },
+   {
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "import": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "Time Tracking Admin",
+    "share": 1,
+    "write": 1,
+    "permlevel": 1
+   },
+   {
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "import": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "System Manager",
+    "share": 1,
+    "write": 1,
+    "permlevel": 2
+   },
+   {
+    "create": 1,
+    "delete": 1,
+    "email": 1,
+    "export": 1,
+    "import": 1,
+    "print": 1,
+    "read": 1,
+    "report": 1,
+    "role": "Time Tracking Admin",
+    "share": 1,
+    "write": 1,
+    "permlevel": 2
+   }
+  ],
  "quick_entry": 1,
  "search_fields": "user",
  "show_name_in_global_search": 1,

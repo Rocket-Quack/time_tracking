@@ -14,5 +14,13 @@
     "is_custom": 1,
     "name": "Time Tracking Admin",
     "role_name": "Time Tracking Admin"
+  },
+  {
+    "desk_access": 1,
+    "disabled": 0,
+    "doctype": "Role",
+    "is_custom": 1,
+    "name": "Time Tracking Manager",
+    "role_name": "Time Tracking Manager"
   }
 ]

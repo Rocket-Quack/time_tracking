@@ -6,7 +6,10 @@
  "field_order": [
   "booking_rules_section",
   "weekly_booking_day_label_format",
-  "time_booking_increment_minutes"
+  "time_booking_increment_minutes",
+  "billing_rates_section",
+  "rate_basis",
+  "allow_profile_rate_override"
  ],
  "fields": [
   {
@@ -28,6 +31,26 @@
    "fieldtype": "Int",
    "label": "Time Booking Increment (Minutes)",
    "min_value": "1"
+  },
+  {
+   "fieldname": "billing_rates_section",
+   "fieldtype": "Section Break",
+   "label": "Billing Rates"
+  },
+  {
+   "default": "Role",
+   "fieldname": "rate_basis",
+   "fieldtype": "Select",
+   "label": "Rate Basis",
+   "options": "Role\nUser",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "Allow overriding assigned role/user rates on Time Tracking Profiles.",
+   "fieldname": "allow_profile_rate_override",
+   "fieldtype": "Check",
+   "label": "Allow Profile Rate Override"
   }
  ],
  "icon": "fa fa-cog",

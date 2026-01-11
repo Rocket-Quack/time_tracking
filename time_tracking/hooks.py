@@ -46,6 +46,9 @@ add_to_apps_screen = [
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"User": "public/js/user.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -90,6 +93,23 @@ add_to_apps_screen = [
 # Fixtures
 # --------
 # Fixtures are managed via JSON files in /fixtures and synced on migrate.
+fixtures = [
+	{
+		"dt": "Role",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Time Tracking Employee",
+					"Time Tracking Admin",
+					"Time Tracking Manager",
+				],
+			]
+		],
+	},
+	{"dt": "Workspace", "filters": [["module", "=", "Time Tracking"]]},
+]
 
 # Uninstallation
 # ------------
@@ -229,6 +249,9 @@ has_permission = {
 # auth_hooks = [
 # 	"time_tracking.auth.validate"
 # ]
+
+# login
+on_login = "time_tracking.utils.ensure_default_workspace"
 
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True

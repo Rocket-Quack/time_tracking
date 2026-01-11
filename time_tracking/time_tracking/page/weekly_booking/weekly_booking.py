@@ -178,6 +178,15 @@ def _get_time_booking_rows(user, week_start_date):
     return list(rows.values())
 
 
+def _build_booking_minutes_map(bookings):
+    minutes_map = {}
+    for booking in bookings:
+        date_key = str(getdate(booking.date))
+        key = (booking.project, booking.notes or "", date_key)
+        minutes_map[key] = minutes_map.get(key, 0) + int(flt(booking.duration_minutes))
+    return minutes_map
+
+
 @frappe.whitelist()
 def get_weekly_booking(user=None, week_start_date=None):
     if not week_start_date:
@@ -246,28 +255,62 @@ def save_weekly_booking(data):
 
     hour_fields = DAY_FIELDS
     assigned_project_names = None
+    existing_unassigned_minutes = {}
+    existing_unassigned_projects = set()
+    row_unassigned_minutes = {}
     if not _is_admin():
         assigned_project_names = _get_assigned_project_names(user)
+        existing_bookings = frappe.get_all(
+            "Time Booking",
+            filters={
+                "time_tracking_profile": profile_name,
+                "date": ["between", [week_start, week_end]],
+            },
+            fields=["project", "notes", "date", "duration_minutes"],
+        )
+        if existing_bookings:
+            existing_minutes = _build_booking_minutes_map(existing_bookings)
+            if assigned_project_names:
+                existing_unassigned_minutes = {
+                    key: minutes
+                    for key, minutes in existing_minutes.items()
+                    if key[0] not in assigned_project_names
+                }
+            else:
+                existing_unassigned_minutes = existing_minutes
+            existing_unassigned_projects = {key[0] for key in existing_unassigned_minutes}
 
     increment = _get_increment_minutes()
     time_bookings = []
 
     for row in rows:
         row_project = row.get("project")
-        row_note = row.get("note")
+        row_note = (row.get("note") or "").strip()
         hours = {field: _coerce_hours(row.get(field), field) for field in hour_fields}
 
         if not row_project and not row_note and not any(hours.values()):
             continue
 
-        if any(hours.values()) and not row_project:
-            frappe.throw(_("Project is required for bookings."))
+        if any(hours.values()):
+            if not row_project:
+                frappe.throw(_("Project is required for bookings."))
+            if not row_note:
+                frappe.throw(_("Note is required for bookings."))
 
         if row_project:
             if assigned_project_names is not None and row_project not in assigned_project_names:
-                frappe.throw(
-                    _("Project {0} is not assigned to your profile.").format(row_project)
-                )
+                if row_project not in existing_unassigned_projects:
+                    frappe.throw(
+                        _("Project {0} is not assigned to your profile.").format(row_project)
+                    )
+                for idx, field in enumerate(hour_fields):
+                    minutes = int(round(flt(hours.get(field)) * 60))
+                    if minutes <= 0:
+                        continue
+                    date_key = str(add_days(week_start, idx))
+                    key = (row_project, row_note, date_key)
+                    row_unassigned_minutes[key] = row_unassigned_minutes.get(key, 0) + minutes
+                continue
 
             if not frappe.db.exists("Time Tracking Project", row_project):
                 frappe.throw(_("Project {0} does not exist.").format(row_project))
@@ -296,13 +339,39 @@ def save_weekly_booking(data):
                 }
             )
 
-    frappe.db.delete(
-        "Time Booking",
-        {
-            "time_tracking_profile": profile_name,
-            "date": ["between", [week_start, week_end]],
-        },
-    )
+    if assigned_project_names is not None and existing_unassigned_minutes:
+        mismatched_projects = set()
+        for key, minutes in existing_unassigned_minutes.items():
+            if row_unassigned_minutes.get(key) != minutes:
+                mismatched_projects.add(key[0])
+        for key in row_unassigned_minutes:
+            if key not in existing_unassigned_minutes:
+                mismatched_projects.add(key[0])
+        if mismatched_projects:
+            project_list = ", ".join(sorted(mismatched_projects))
+            frappe.throw(
+                _(
+                    "Projects not assigned to your profile cannot be edited. Reassign to update: {0}"
+                ).format(project_list)
+            )
+
+    if assigned_project_names is None:
+        frappe.db.delete(
+            "Time Booking",
+            {
+                "time_tracking_profile": profile_name,
+                "date": ["between", [week_start, week_end]],
+            },
+        )
+    elif assigned_project_names:
+        frappe.db.delete(
+            "Time Booking",
+            {
+                "time_tracking_profile": profile_name,
+                "date": ["between", [week_start, week_end]],
+                "project": ["in", list(assigned_project_names)],
+            },
+        )
 
     for booking in time_bookings:
         doc = frappe.new_doc("Time Booking")

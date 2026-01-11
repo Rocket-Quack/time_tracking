@@ -116,6 +116,11 @@
    "read": 1,
    "role": "Time Tracking Employee",
    "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Manager"
   }
  ],
  "quick_entry": 1,

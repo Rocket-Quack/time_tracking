@@ -48,6 +48,19 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 text-align: center;
                 font-variant-numeric: tabular-nums;
             }
+            .weekly-booking .wb-row-saved td { background: #e8f6ef; }
+            .weekly-booking .wb-row-saved td:first-child { box-shadow: inset 3px 0 0 #28a745; }
+            .weekly-booking .wb-row-saved:hover td { background: #e0f2e9; }
+            .weekly-booking .wb-row-unsaved td { background: #fff4e5; }
+            .weekly-booking .wb-row-unsaved td:first-child { box-shadow: inset 3px 0 0 #f0ad4e; }
+            .weekly-booking .wb-row-unsaved:hover td { background: #ffe9cc; }
+            .weekly-booking .wb-divider-row td {
+                padding: 0 !important;
+                height: 8px;
+                border: none !important;
+                background: transparent !important;
+            }
+            .weekly-booking .wb-divider-row:hover td { background: transparent !important; }
             .weekly-booking .weekly-booking-stepperBtn {
                 width: 32px;
                 height: 32px;
@@ -90,6 +103,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         month_total_minutes: 0,
         loaded_week_total_minutes: 0,
         overtime_balance_minutes: 0,
+        saved_row_counts: new Map(),
     };
 
     const $user = $container.find("#weekly-booking-user");
@@ -195,6 +209,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     const $monthStatus = $summary.find("#weekly-booking-month-status");
     const $hoursBalance = $summary.find("#weekly-booking-hours-balance");
 
+    const dividerColspan = 2 + 7;
     const hourFields = [
         { field: "monday_hours", class: "wb-mon" },
         { field: "tuesday_hours", class: "wb-tue" },
@@ -226,6 +241,112 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         }
 
         return options.join("");
+    }
+
+    function isRowFilled($row) {
+        const project = $row.find(".wb-project").val();
+        if (project) {
+            return true;
+        }
+        const note = ($row.find(".wb-note").val() || "").trim();
+        if (note) {
+            return true;
+        }
+        let hasHours = false;
+        $row.find(".wb-hours").each(function () {
+            if (parseMinutes($(this).val()) > 0) {
+                hasHours = true;
+                return false;
+            }
+        });
+        return hasHours;
+    }
+
+    function buildRowSignature(project, note, minutesByField) {
+        const parts = [project || "", note || ""];
+        hourFields.forEach((field) => {
+            parts.push(String(minutesByField[field.field] || 0));
+        });
+        return parts.join("||");
+    }
+
+    function buildSignatureFromRow($row) {
+        const minutesByField = {};
+        hourFields.forEach((field) => {
+            minutesByField[field.field] = parseMinutes($row.find(`.${field.class}`).val());
+        });
+        const project = $row.find(".wb-project").val() || "";
+        const note = ($row.find(".wb-note").val() || "").trim();
+        return buildRowSignature(project, note, minutesByField);
+    }
+
+    function buildSignatureFromData(row) {
+        const minutesByField = {};
+        hourFields.forEach((field) => {
+            minutesByField[field.field] = Math.round(Number(row[field.field] || 0) * 60);
+        });
+        const project = row.project || "";
+        const note = (row.note || "").trim();
+        return buildRowSignature(project, note, minutesByField);
+    }
+
+    function isRowDataEmpty(row) {
+        if (row.project) {
+            return false;
+        }
+        const note = (row.note || "").trim();
+        if (note) {
+            return false;
+        }
+        return !hourFields.some((field) => Number(row[field.field] || 0) > 0);
+    }
+
+    function buildSavedRowCounts(rows) {
+        const counts = new Map();
+        (rows || []).forEach((row) => {
+            if (isRowDataEmpty(row)) {
+                return;
+            }
+            const signature = buildSignatureFromData(row);
+            counts.set(signature, (counts.get(signature) || 0) + 1);
+        });
+        return counts;
+    }
+
+    function applyRowHighlights() {
+        const remaining = new Map();
+        if (state.saved_row_counts) {
+            state.saved_row_counts.forEach((count, key) => {
+                remaining.set(key, count);
+            });
+        }
+
+        getDataRows().each(function () {
+            const $row = $(this);
+            if (!isRowFilled($row)) {
+                $row.removeClass("wb-row-saved wb-row-unsaved");
+                return;
+            }
+
+            const signature = buildSignatureFromRow($row);
+            const count = remaining.get(signature) || 0;
+            if (count > 0) {
+                $row.addClass("wb-row-saved").removeClass("wb-row-unsaved");
+                remaining.set(signature, count - 1);
+            } else {
+                $row.addClass("wb-row-unsaved").removeClass("wb-row-saved");
+            }
+        });
+    }
+
+    function addDividerRow() {
+        $rows.append(
+            `<tr class="wb-divider-row" data-row-type="divider"><td colspan="${dividerColspan}"></td></tr>`
+        );
+    }
+
+    function getDataRows() {
+        return $rows.find("tr").not(".wb-divider-row");
     }
 
     const increaseLabel = __("Increase time");
@@ -283,11 +404,16 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             rows.forEach((row) => addRow(row, true));
         }
 
+        if (rows && rows.length) {
+            addDividerRow();
+        }
+
         const emptyRows = 3;
         for (let i = 0; i < emptyRows; i++) {
             addRow({}, true);
         }
         updateTotals();
+        applyRowHighlights();
     }
 
     function loadProjects(callback) {
@@ -370,6 +496,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
                 const rows = message.rows || [];
                 state.loaded_week_total_minutes = calculateWeekMinutes(rows);
+                state.saved_row_counts = buildSavedRowCounts(rows);
                 if (!state.projects_loaded) {
                     loadProjects(() => renderRows(rows));
                 } else {
@@ -391,7 +518,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
     function collectRows() {
         const rows = [];
-        $rows.find("tr").each(function () {
+        getDataRows().each(function () {
             const $row = $(this);
             const rowData = {
                 project: $row.find(".wb-project").val(),
@@ -458,6 +585,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     function adjustInputMinutes($input, deltaMinutes) {
         const current = parseMinutes($input.val());
         setInputMinutes($input, current + deltaMinutes);
+        applyRowHighlights();
         updateTotals();
     }
 
@@ -482,7 +610,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             sunday_hours: 0,
         };
 
-        $rows.find("tr").each(function () {
+        getDataRows().each(function () {
             const $row = $(this);
             hourFields.forEach((field) => {
                 totals[field.field] += parseMinutes($row.find(`.${field.class}`).val());
@@ -590,6 +718,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                     );
                 }
                 updateTotals();
+                state.saved_row_counts = buildSavedRowCounts(collectRows());
+                applyRowHighlights();
 
                 frappe.msgprint({
                     title: __("Saved"),
@@ -628,6 +758,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     });
     $addRowButton.on("click", function () {
         addRow({});
+        applyRowHighlights();
+    });
+    $rows.on("change input", ".wb-project, .wb-note", function () {
+        applyRowHighlights();
     });
     $rows.on("keydown", ".wb-hours", function (event) {
         if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
@@ -642,6 +776,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         const $input = $(this);
         const minutes = parseMinutes($input.val());
         setInputMinutes($input, minutes);
+        applyRowHighlights();
         updateTotals();
     });
     $rows.on("click", ".wb-step", function (event) {
@@ -651,7 +786,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         const $input = $step.closest(".wb-time-cell").find(".wb-hours");
         adjustInputMinutes($input, delta);
     });
-    $rows.on("input change", ".wb-hours", updateTotals);
+    $rows.on("input change", ".wb-hours", function () {
+        applyRowHighlights();
+        updateTotals();
+    });
 
     $addRowButton.prop("disabled", true);
     loadProjects();

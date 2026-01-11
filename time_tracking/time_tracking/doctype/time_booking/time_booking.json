@@ -49,7 +49,8 @@
   {
    "fieldname": "notes",
    "fieldtype": "Small Text",
-   "label": "Notes"
+   "label": "Notes",
+   "reqd": 1
   }
  ],
  "icon": "fa fa-clock-o",
@@ -109,6 +110,11 @@
    "role": "Time Tracking Employee",
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Manager"
   }
  ],
  "quick_entry": 1,

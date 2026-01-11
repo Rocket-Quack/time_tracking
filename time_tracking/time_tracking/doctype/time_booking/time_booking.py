@@ -7,6 +7,7 @@ class TimeBooking(Document):
         self._set_default_profile()
         self._validate_profile_permission()
         self._validate_project()
+        self._validate_notes()
         self._validate_duration_increment()
 
     def _is_admin(self):
@@ -65,6 +66,10 @@ class TimeBooking(Document):
                 frappe.throw(
                     _("Project {0} is not assigned to your profile.").format(self.project)
                 )
+
+    def _validate_notes(self):
+        if not (self.notes or "").strip():
+            frappe.throw(_("Note is required for bookings."))
 
     def _validate_duration_increment(self):
         if not self.duration_minutes:

@@ -53,6 +53,8 @@ class WeeklyBookingData(Document):
             hours = [flt(row.get(field)) for field in day_fields]
             if any(hours) and not row.project:
                 frappe.throw(_("Project is required for bookings."))
+            if any(hours) and not (row.note or "").strip():
+                frappe.throw(_("Note is required for bookings."))
 
             if row.project:
                 if assigned_projects is not None and row.project not in assigned_projects:

@@ -7,6 +7,7 @@
  "field_order": [
   "adjusted_on",
   "adjusted_by",
+  "reason",
   "previous_period",
   "target_period",
   "old_value",
@@ -27,6 +28,13 @@
    "in_list_view": 1,
    "label": "Adjusted By",
    "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Reason",
    "read_only": 1
   },
   {

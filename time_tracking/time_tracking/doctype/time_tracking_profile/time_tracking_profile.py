@@ -121,6 +121,13 @@ def _is_manager(user=None):
     return "Time Tracking Manager" in roles
 
 
+def _track_target_adjustments_enabled():
+    return cint(
+        frappe.db.get_single_value("Time Tracking Settings", "track_target_adjustments")
+        or 0
+    )
+
+
 def get_permission_query_conditions(user):
     if not user:
         user = frappe.session.user
@@ -140,7 +147,7 @@ def has_permission(doc, user):
 
 
 @frappe.whitelist()
-def adjust_target(profile_name, target_period, delta_hours):
+def adjust_target(profile_name, target_period, delta_hours, reason=None):
     if not _is_admin():
         frappe.throw(_("Only administrators can adjust targets."))
 
@@ -155,6 +162,11 @@ def adjust_target(profile_name, target_period, delta_hours):
     if delta == 0:
         frappe.throw(_("Adjustment value must be non-zero."))
 
+    track_adjustments = _track_target_adjustments_enabled()
+    reason = (reason or "").strip()
+    if track_adjustments and not reason:
+        frappe.throw(_("Reason is required for target adjustments."))
+
     profile = frappe.get_doc("Time Tracking Profile", profile_name)
     if profile.target_period != target_period:
         frappe.throw(_("Target period does not match the profile configuration."))
@@ -167,18 +179,20 @@ def adjust_target(profile_name, target_period, delta_hours):
 
     profile.set(fieldname, new_value)
     profile.flags.allow_target_adjustment = True
-    profile.append(
-        "target_adjustments",
-        {
-            "adjusted_on": now_datetime(),
-            "adjusted_by": frappe.session.user,
-            "previous_period": target_period,
-            "target_period": target_period,
-            "old_value": old_value,
-            "new_value": new_value,
-            "delta_hours": delta,
-        },
-    )
+    if track_adjustments:
+        profile.append(
+            "target_adjustments",
+            {
+                "adjusted_on": now_datetime(),
+                "adjusted_by": frappe.session.user,
+                "reason": reason,
+                "previous_period": target_period,
+                "target_period": target_period,
+                "old_value": old_value,
+                "new_value": new_value,
+                "delta_hours": delta,
+            },
+        )
     profile.save(ignore_permissions=True)
 
     return {
@@ -189,7 +203,7 @@ def adjust_target(profile_name, target_period, delta_hours):
 
 
 @frappe.whitelist()
-def switch_target_period(profile_name, new_period, new_value):
+def switch_target_period(profile_name, new_period, new_value, reason=None):
     if not _is_admin():
         frappe.throw(_("Only administrators can switch target periods."))
 
@@ -212,6 +226,11 @@ def switch_target_period(profile_name, new_period, new_value):
     if new_value <= 0:
         frappe.throw(_("Target hours must be greater than 0."))
 
+    track_adjustments = _track_target_adjustments_enabled()
+    reason = (reason or "").strip()
+    if track_adjustments and not reason:
+        frappe.throw(_("Reason is required for target adjustments."))
+
     old_value = (
         flt(profile.weekly_target_hours)
         if old_period == TARGET_PERIOD_WEEKLY
@@ -228,18 +247,20 @@ def switch_target_period(profile_name, new_period, new_value):
 
     profile.flags.allow_target_adjustment = True
     profile.flags.allow_target_period_change = True
-    profile.append(
-        "target_adjustments",
-        {
-            "adjusted_on": now_datetime(),
-            "adjusted_by": frappe.session.user,
-            "previous_period": old_period,
-            "target_period": new_period,
-            "old_value": old_value,
-            "new_value": new_value,
-            "delta_hours": new_value - old_value,
-        },
-    )
+    if track_adjustments:
+        profile.append(
+            "target_adjustments",
+            {
+                "adjusted_on": now_datetime(),
+                "adjusted_by": frappe.session.user,
+                "reason": reason,
+                "previous_period": old_period,
+                "target_period": new_period,
+                "old_value": old_value,
+                "new_value": new_value,
+                "delta_hours": new_value - old_value,
+            },
+        )
     profile.save(ignore_permissions=True)
 
     return {

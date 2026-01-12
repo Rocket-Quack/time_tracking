@@ -4,14 +4,24 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "booking_tab",
   "booking_rules_section",
   "weekly_booking_day_label_format",
   "time_booking_increment_minutes",
+  "billing_tab",
   "billing_rates_section",
   "rate_basis",
-  "allow_profile_rate_override"
+  "allow_profile_rate_override",
+  "targets_tab",
+  "targets_section",
+  "track_target_adjustments"
  ],
  "fields": [
+  {
+   "fieldname": "booking_tab",
+   "fieldtype": "Tab Break",
+   "label": "Booking Rules"
+  },
   {
    "fieldname": "booking_rules_section",
    "fieldtype": "Section Break",
@@ -33,6 +43,11 @@
    "min_value": "1"
   },
   {
+   "fieldname": "billing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Billing Rates"
+  },
+  {
    "fieldname": "billing_rates_section",
    "fieldtype": "Section Break",
    "label": "Billing Rates"
@@ -51,6 +66,23 @@
    "fieldname": "allow_profile_rate_override",
    "fieldtype": "Check",
    "label": "Allow Profile Rate Override"
+  },
+  {
+   "fieldname": "targets_tab",
+   "fieldtype": "Tab Break",
+   "label": "Targets"
+  },
+  {
+   "fieldname": "targets_section",
+   "fieldtype": "Section Break",
+   "label": "Targets"
+  },
+  {
+   "default": "0",
+   "description": "Require a reason and store target adjustments in profiles.",
+   "fieldname": "track_target_adjustments",
+   "fieldtype": "Check",
+   "label": "Track Target Adjustments"
   }
  ],
  "icon": "fa fa-cog",

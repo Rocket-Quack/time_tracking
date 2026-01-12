@@ -20,10 +20,32 @@ function applyRateSettings(frm) {
             const allowOverride = Number(r) === 1;
             const readOnly = !(allowOverride && isTargetAdmin());
             frm.set_df_property("hourly_rate", "read_only", readOnly);
-        });
+    });
 }
 
 const DEFAULT_WEEKS_PER_MONTH = 52 / 12;
+const SETTINGS_DOCTYPE = "Time Tracking Settings";
+const TRACK_TARGET_ADJUSTMENTS_FIELD = "track_target_adjustments";
+
+function getTrackTargetAdjustmentsSetting(frm) {
+    return frappe.db
+        .get_single_value(SETTINGS_DOCTYPE, TRACK_TARGET_ADJUSTMENTS_FIELD)
+        .then((value) => {
+            return Number(value) === 1;
+        });
+}
+
+function applyTargetAdjustmentVisibility(frm) {
+    if (!frm.fields_dict.target_adjustments) {
+        return;
+    }
+
+    getTrackTargetAdjustmentsSetting(frm).then((enabled) => {
+        frm.set_df_property("target_adjustments_section", "hidden", !enabled);
+        frm.set_df_property("target_adjustments", "hidden", !enabled);
+        frm.refresh_field("target_adjustments");
+    });
+}
 
 function buildConversionPreviewHtml(baseValue, weeksPerMonth, suggestedValue, targetPeriod) {
     const weekLabel = __("Weeks per Month");
@@ -86,9 +108,8 @@ function openTargetSwitchDialog(frm, newPeriod) {
     const dialogTitle =
         newPeriod === "Monthly" ? __("Switch to Monthly Target") : __("Switch to Weekly Target");
 
-    const dialog = new frappe.ui.Dialog({
-        title: dialogTitle,
-        fields: [
+    getTrackTargetAdjustmentsSetting(frm).then((trackAdjustments) => {
+        const fields = [
             {
                 fieldtype: "HTML",
                 fieldname: "conversion_preview",
@@ -112,58 +133,77 @@ function openTargetSwitchDialog(frm, newPeriod) {
                 label: __("New Target Hours"),
                 reqd: 1,
             },
-        ],
-        primary_action_label: __("Switch"),
-        primary_action(values) {
-            frappe.call({
-                method:
-                    "time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.switch_target_period",
-                args: {
-                    profile_name: frm.doc.name,
-                    new_period: newPeriod,
-                    new_value: values.new_target_hours,
-                },
-                callback: function (r) {
-                    if (!r.exc) {
-                        dialog.hide();
-                        frm.reload_doc();
-                    }
-                },
+        ];
+
+        if (trackAdjustments) {
+            fields.push({
+                fieldname: "reason",
+                fieldtype: "Small Text",
+                label: __("Reason"),
+                reqd: 1,
             });
-        },
-    });
-
-    let manualOverride = false;
-
-    function updateSuggestion() {
-        const weeks = Number(dialog.get_value("weeks_per_month")) || DEFAULT_WEEKS_PER_MONTH;
-        const suggested =
-            newPeriod === "Monthly"
-                ? Number(baseValue) * weeks
-                : Number(baseValue) / weeks;
-        const rounded = Math.round(suggested * 100) / 100;
-        const roundedWeeks = Math.round(weeks * 100) / 100;
-
-        dialog.set_value("suggested_target_hours", rounded);
-        if (!manualOverride) {
-            dialog.set_value("new_target_hours", rounded);
         }
 
-        dialog.fields_dict.conversion_preview.$wrapper.html(
-            buildConversionPreviewHtml(baseValue, roundedWeeks, rounded, newPeriod)
-        );
-    }
+        const dialog = new frappe.ui.Dialog({
+            title: dialogTitle,
+            fields,
+            primary_action_label: __("Switch"),
+            primary_action(values) {
+                if (!values) {
+                    return;
+                }
+                const reason = trackAdjustments ? (values.reason || "").trim() : "";
+                frappe.call({
+                    method:
+                        "time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.switch_target_period",
+                    args: {
+                        profile_name: frm.doc.name,
+                        new_period: newPeriod,
+                        new_value: values.new_target_hours,
+                        reason: reason || undefined,
+                    },
+                    callback: function (r) {
+                        if (!r.exc) {
+                            dialog.hide();
+                            frm.reload_doc();
+                        }
+                    },
+                });
+            },
+        });
 
-    dialog.show();
-    updateSuggestion();
+        let manualOverride = false;
 
-    dialog.get_field("weeks_per_month").$input.on("input", function () {
-        manualOverride = false;
+        function updateSuggestion() {
+            const weeks = Number(dialog.get_value("weeks_per_month")) || DEFAULT_WEEKS_PER_MONTH;
+            const suggested =
+                newPeriod === "Monthly"
+                    ? Number(baseValue) * weeks
+                    : Number(baseValue) / weeks;
+            const rounded = Math.round(suggested * 100) / 100;
+            const roundedWeeks = Math.round(weeks * 100) / 100;
+
+            dialog.set_value("suggested_target_hours", rounded);
+            if (!manualOverride) {
+                dialog.set_value("new_target_hours", rounded);
+            }
+
+            dialog.fields_dict.conversion_preview.$wrapper.html(
+                buildConversionPreviewHtml(baseValue, roundedWeeks, rounded, newPeriod)
+            );
+        }
+
+        dialog.show();
         updateSuggestion();
-    });
 
-    dialog.get_field("new_target_hours").$input.on("input", function () {
-        manualOverride = true;
+        dialog.get_field("weeks_per_month").$input.on("input", function () {
+            manualOverride = false;
+            updateSuggestion();
+        });
+
+        dialog.get_field("new_target_hours").$input.on("input", function () {
+            manualOverride = true;
+        });
     });
 }
 
@@ -173,8 +213,8 @@ function openTargetAdjustmentDialog(frm, targetPeriod, labelSuffix, direction) {
             ? __("Increase {0}", [labelSuffix])
             : __("Decrease {0}", [labelSuffix]);
 
-    frappe.prompt(
-        [
+    getTrackTargetAdjustmentsSetting(frm).then((trackAdjustments) => {
+        const fields = [
             {
                 fieldname: "hours",
                 fieldtype: "Float",
@@ -182,36 +222,52 @@ function openTargetAdjustmentDialog(frm, targetPeriod, labelSuffix, direction) {
                 reqd: 1,
                 default: 1,
             },
-        ],
-        (values) => {
-            const hours = Math.abs(values.hours || 0);
-            if (!hours) {
-                frappe.msgprint({
-                    title: __("Missing Value"),
-                    message: __("Please enter a positive hour value."),
-                    indicator: "red",
-                });
-                return;
-            }
+        ];
 
-            frappe.call({
-                method:
-                    "time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.adjust_target",
-                args: {
-                    profile_name: frm.doc.name,
-                    target_period: targetPeriod,
-                    delta_hours: direction * hours,
-                },
-                callback: function (r) {
-                    if (!r.exc) {
-                        frm.reload_doc();
-                    }
-                },
+        if (trackAdjustments) {
+            fields.push({
+                fieldname: "reason",
+                fieldtype: "Small Text",
+                label: __("Reason"),
+                reqd: 1,
             });
-        },
-        actionLabel,
-        __("Update")
-    );
+        }
+
+        frappe.prompt(
+            fields,
+            (values) => {
+                const hours = Math.abs(values.hours || 0);
+                if (!hours) {
+                    frappe.msgprint({
+                        title: __("Missing Value"),
+                        message: __("Please enter a positive hour value."),
+                        indicator: "red",
+                    });
+                    return;
+                }
+
+                const reason = trackAdjustments ? (values.reason || "").trim() : "";
+
+                frappe.call({
+                    method:
+                        "time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.adjust_target",
+                    args: {
+                        profile_name: frm.doc.name,
+                        target_period: targetPeriod,
+                        delta_hours: direction * hours,
+                        reason: reason || undefined,
+                    },
+                    callback: function (r) {
+                        if (!r.exc) {
+                            frm.reload_doc();
+                        }
+                    },
+                });
+            },
+            actionLabel,
+            __("Update")
+        );
+    });
 }
 
 function addTargetButtons(frm) {
@@ -287,5 +343,6 @@ frappe.ui.form.on("Time Tracking Profile", {
         addTargetButtons(frm);
         addProfileLinks(frm);
         applyRateSettings(frm);
+        applyTargetAdjustmentVisibility(frm);
     },
 });

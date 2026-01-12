@@ -8,6 +8,8 @@ from time_tracking.time_tracking.vacation_utils import (
     get_hours_per_vacation_day,
     get_vacation_balance,
     get_vacation_project,
+    get_sickness_project,
+    validate_holiday_list_for_date,
 )
 
 class TimeBooking(Document):
@@ -18,6 +20,7 @@ class TimeBooking(Document):
         self._validate_notes()
         self._validate_duration_increment()
         self._validate_vacation_balance()
+        self._validate_holiday_list()
 
     def _is_admin(self):
         roles = frappe.get_roles(frappe.session.user)
@@ -75,8 +78,12 @@ class TimeBooking(Document):
 
         if not self._is_admin():
             vacation_project = get_vacation_project()
+            sickness_project = get_sickness_project()
             assigned_projects = self._get_assigned_project_names()
-            if self.project not in assigned_projects and self.project != vacation_project:
+            if (
+                self.project not in assigned_projects
+                and self.project not in (vacation_project, sickness_project)
+            ):
                 frappe.throw(
                     _("Project {0} is not assigned to your profile.").format(self.project)
                 )
@@ -135,3 +142,8 @@ class TimeBooking(Document):
                     flt(remaining_days, 2)
                 )
             )
+
+    def _validate_holiday_list(self):
+        if not self.date or not self.time_tracking_profile:
+            return
+        validate_holiday_list_for_date(self.date)

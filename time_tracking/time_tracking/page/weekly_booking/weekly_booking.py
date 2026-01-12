@@ -7,6 +7,8 @@ from frappe.utils import add_days, cint, flt, formatdate, getdate
 from time_tracking.time_tracking.vacation_utils import (
     get_vacation_balance,
     get_vacation_project,
+    get_sickness_project,
+    validate_holiday_list_for_date,
 )
 
 DAY_FIELDS = [
@@ -134,6 +136,9 @@ def _get_assigned_projects(user):
     vacation_project = get_vacation_project()
     if vacation_project and vacation_project not in project_names:
         project_names.append(vacation_project)
+    sickness_project = get_sickness_project()
+    if sickness_project and sickness_project not in project_names:
+        project_names.append(sickness_project)
     if not project_names:
         return []
 
@@ -438,6 +443,11 @@ def save_weekly_booking(data):
                     "duration_minutes": minutes,
                 }
             )
+
+    if time_bookings:
+        booking_dates = {booking["date"] for booking in time_bookings}
+        for booking_date in booking_dates:
+            validate_holiday_list_for_date(booking_date)
 
     if existing_not_bookable_minutes or row_not_bookable_minutes:
         mismatched_projects = set()

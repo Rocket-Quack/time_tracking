@@ -22,7 +22,13 @@
   "vacation_section",
   "vacation_booking_project",
   "default_workdays_per_week",
-  "allow_negative_vacation_balance"
+  "allow_negative_vacation_balance",
+  "holiday_tab",
+  "holiday_section",
+  "enable_holiday_list",
+  "sickness_tab",
+  "sickness_section",
+  "sickness_booking_project"
  ],
  "fields": [
   {
@@ -140,6 +146,40 @@
    "fieldname": "allow_negative_vacation_balance",
    "fieldtype": "Check",
    "label": "Allow Negative Vacation Balance"
+  },
+  {
+   "fieldname": "holiday_tab",
+   "fieldtype": "Tab Break",
+   "label": "Holidays"
+  },
+  {
+   "fieldname": "holiday_section",
+   "fieldtype": "Section Break",
+   "label": "Holidays"
+  },
+  {
+   "default": "0",
+   "description": "Enable holiday lists for monthly calculations and booking validation.",
+   "fieldname": "enable_holiday_list",
+   "fieldtype": "Check",
+   "label": "Enable Holidays"
+  },
+  {
+   "fieldname": "sickness_tab",
+   "fieldtype": "Tab Break",
+   "label": "Sickness"
+  },
+  {
+   "fieldname": "sickness_section",
+   "fieldtype": "Section Break",
+   "label": "Sickness"
+  },
+  {
+   "description": "Project used for sickness bookings.",
+   "fieldname": "sickness_booking_project",
+   "fieldtype": "Link",
+   "label": "Sickness Booking Project",
+   "options": "Time Tracking Project"
   }
  ],
  "icon": "fa fa-cog",

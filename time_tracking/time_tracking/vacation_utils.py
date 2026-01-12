@@ -1,13 +1,25 @@
 import calendar
 
 import frappe
+from frappe import _
 from frappe.utils import cint, flt, getdate
 
 WEEKS_PER_MONTH = 52 / 12
+HOLIDAY_LIST_SUFFIX = "Holiday-List"
 
 
 def get_vacation_project():
     return frappe.db.get_single_value("Time Tracking Settings", "vacation_booking_project")
+
+
+def get_sickness_project():
+    return frappe.db.get_single_value("Time Tracking Settings", "sickness_booking_project")
+
+def get_holidays_enabled():
+    return cint(
+        frappe.db.get_single_value("Time Tracking Settings", "enable_holiday_list")
+        or 0
+    )
 
 
 def get_allow_negative_vacation_balance():
@@ -24,6 +36,46 @@ def get_default_workdays_per_week():
         frappe.db.get_single_value("Time Tracking Settings", "default_workdays_per_week")
         or 0
     )
+
+
+def get_expected_holiday_list_name(year):
+    year = cint(year)
+    if not year:
+        return None
+    return f"{year}-{HOLIDAY_LIST_SUFFIX}"
+
+
+def get_holiday_list_for_range(start_date, end_date):
+    year = getdate(start_date).year
+    expected_name = get_expected_holiday_list_name(year)
+    if not expected_name:
+        return None
+    exists = frappe.db.exists(
+        "Time Tracking Holiday List",
+        {"name": expected_name, "year": year},
+    )
+    return expected_name if exists else None
+
+
+def get_holiday_list_for_date(date):
+    if not date:
+        return None
+    booking_date = getdate(date)
+    return get_holiday_list_for_range(booking_date, booking_date)
+
+
+def validate_holiday_list_for_date(date):
+    if not get_holidays_enabled():
+        return None
+
+    holiday_list = get_holiday_list_for_date(date)
+    if not holiday_list:
+        year = getdate(date).year
+        expected_name = get_expected_holiday_list_name(year)
+        frappe.throw(
+            _("Holiday List for {0} must be named {1}.").format(year, expected_name)
+        )
+    return holiday_list
 
 
 def get_hours_per_vacation_day(profile):

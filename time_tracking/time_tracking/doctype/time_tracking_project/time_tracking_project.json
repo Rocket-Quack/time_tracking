@@ -13,6 +13,18 @@
   "is_internal",
   "parent_time_tracking_project",
   "is_group",
+  "not_bookable",
+  "budget_section",
+  "budget_hours",
+  "budget_amount",
+  "budget_summary_column",
+  "total_budget_hours",
+  "total_budget_amount",
+  "actual_hours",
+  "actual_amount",
+  "budget_status",
+  "budget_hours_percent",
+  "budget_amount_percent",
   "lft",
   "rgt",
   "old_parent"
@@ -48,6 +60,86 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Is Group"
+  },
+  {
+   "default": "0",
+   "fieldname": "not_bookable",
+   "fieldtype": "Check",
+   "label": "Not Bookable",
+   "description": "Prevent new bookings on this project."
+  },
+  {
+   "fieldname": "budget_section",
+   "fieldtype": "Section Break",
+   "label": "Budget",
+   "depends_on": "eval:frappe.user.has_role('System Manager') || frappe.user.has_role('Time Tracking Admin') || frappe.user.has_role('Time Tracking Manager')",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:true;"
+  },
+  {
+   "fieldname": "budget_hours",
+   "fieldtype": "Float",
+   "label": "Budget Hours",
+   "depends_on": "eval:!doc.is_group"
+  },
+  {
+   "fieldname": "budget_amount",
+   "fieldtype": "Currency",
+   "label": "Budget Amount",
+   "options": "currency",
+   "depends_on": "eval:!doc.is_group"
+  },
+  {
+   "fieldname": "budget_summary_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_budget_hours",
+   "fieldtype": "Float",
+   "label": "Total Budget Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_budget_amount",
+   "fieldtype": "Currency",
+   "label": "Total Budget Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_hours",
+   "fieldtype": "Float",
+   "label": "Actual Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_amount",
+   "fieldtype": "Currency",
+   "label": "Actual Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "budget_status",
+   "fieldtype": "Select",
+   "label": "Budget Status",
+   "options": "Under Budget\nOn Budget\nOver Budget",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "budget_hours_percent",
+   "fieldtype": "Percent",
+   "label": "Budget Hours Used (%)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "budget_amount_percent",
+   "fieldtype": "Percent",
+   "label": "Budget Amount Used (%)",
+   "read_only": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "lft",
@@ -142,5 +234,6 @@
  "sort_order": "DESC",
  "states": [],
  "title_field": "project_name",
- "track_changes": 1
+ "track_changes": 1,
+ "default_view": "Tree"
 }

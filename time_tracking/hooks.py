@@ -109,6 +109,7 @@ fixtures = [
 		],
 	},
 	{"dt": "Workspace", "filters": [["module", "=", "Time Tracking"]]},
+	{"dt": "Custom HTML Block", "filters": [["module", "=", "Time Tracking"]]},
 ]
 
 # Uninstallation
@@ -168,13 +169,22 @@ has_permission = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Time Booking": {
+		"after_insert": (
+			"time_tracking.time_tracking.doctype.time_tracking_project"
+			".time_tracking_project.handle_time_booking_insert"
+		),
+		"on_update": (
+			"time_tracking.time_tracking.doctype.time_tracking_project"
+			".time_tracking_project.handle_time_booking_update"
+		),
+		"on_trash": (
+			"time_tracking.time_tracking.doctype.time_tracking_project"
+			".time_tracking_project.handle_time_booking_trash"
+		),
+	},
+}
 
 # Scheduled Tasks
 # ---------------

@@ -7,9 +7,9 @@
                 <input type="text" id="weekly-booking-user" class="form-control" readonly>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-4 wb-col-week">
             <div class="form-group">
-                <label for="weekly-booking-week-start">{{ _("Week Start") }}</label>
+                <label for="weekly-booking-week-start">{{ _("Week") }}</label>
                 <div class="input-group">
                     <div class="input-group-prepend">
                         <button class="btn btn-default" type="button" id="weekly-booking-prev">&laquo;</button>
@@ -19,18 +19,21 @@
                         <button class="btn btn-default" type="button" id="weekly-booking-next">&raquo;</button>
                     </div>
                 </div>
+                <div class="text-muted small mt-1">{{ _("Click to open calendar") }}</div>
             </div>
         </div>
-        <div class="col-sm-2">
+        <div class="col-sm-2 wb-col-today">
+            <div class="form-group text-center">
+                <label class="d-block">&nbsp;</label>
+                <button class="btn btn-default btn-sm wb-today-btn" type="button" id="weekly-booking-today">
+                    {{ _("Today") }}
+                </button>
+            </div>
+        </div>
+        <div class="col-sm-2 wb-col-calendar">
             <div class="form-group">
                 <label for="weekly-booking-calendar-week">{{ _("Calendar Week") }}</label>
                 <input type="text" id="weekly-booking-calendar-week" class="form-control" readonly>
-            </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-group">
-                <label for="weekly-booking-period-label">{{ _("Period") }}</label>
-                <input type="text" id="weekly-booking-period-label" class="form-control" readonly>
             </div>
         </div>
     </div>

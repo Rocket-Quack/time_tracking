@@ -178,6 +178,12 @@ def _get_time_booking_rows(user, week_start_date):
     return list(rows.values())
 
 
+def _get_previous_week_rows(user, week_start_date):
+    week_start = getdate(week_start_date)
+    previous_week_start = add_days(week_start, -7)
+    return _get_time_booking_rows(user, previous_week_start)
+
+
 def _build_booking_minutes_map(bookings):
     minutes_map = {}
     for booking in bookings:
@@ -206,6 +212,7 @@ def get_weekly_booking(user=None, week_start_date=None):
 
     return {
         "rows": _get_time_booking_rows(user, week_start_date),
+        "previous_week_rows": _get_previous_week_rows(user, week_start_date),
         "warning": warning,
         "calendar_week": calendar_week,
         "calendar_year": calendar_year,

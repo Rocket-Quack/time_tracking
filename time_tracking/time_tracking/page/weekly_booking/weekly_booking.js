@@ -54,6 +54,24 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             .weekly-booking .wb-row-unsaved td { background: #fff4e5; }
             .weekly-booking .wb-row-unsaved td:first-child { box-shadow: inset 3px 0 0 #f0ad4e; }
             .weekly-booking .wb-row-unsaved:hover td { background: #ffe9cc; }
+            .weekly-booking .wb-row-suggested td { background: #e7f1ff; }
+            .weekly-booking .wb-row-suggested td:first-child { box-shadow: inset 3px 0 0 #2f80ed; }
+            .weekly-booking .wb-row-suggested:hover td { background: #dbeaff; }
+            .weekly-booking .wb-day-highlight {
+                background: #cfe2ff !important;
+                transition: background-color 0.6s ease;
+            }
+            .weekly-booking .wb-col-week { padding-right: 6px; }
+            .weekly-booking .wb-col-today { padding-left: 6px; padding-right: 6px; }
+            .weekly-booking .wb-col-calendar { padding-left: 6px; }
+            .weekly-booking .wb-actions-col { min-width: 48px; width: 48px; }
+            .weekly-booking .wb-actions-cell { text-align: center; }
+            .weekly-booking .wb-row-delete {
+                width: 30px;
+                height: 30px;
+                line-height: 1;
+                padding: 0;
+            }
             .weekly-booking .wb-divider-row td {
                 padding: 0 !important;
                 height: 8px;
@@ -61,6 +79,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 background: transparent !important;
             }
             .weekly-booking .wb-divider-row:hover td { background: transparent !important; }
+            .weekly-booking .wb-section-divider td { height: 8px; }
             .weekly-booking .weekly-booking-stepperBtn {
                 width: 32px;
                 height: 32px;
@@ -89,6 +108,38 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             .weekly-booking .wb-week-total { text-align: right; }
             .weekly-booking .wb-note { min-width: 220px; }
             .weekly-booking .wb-project { min-width: 220px; }
+            .weekly-booking .weekly-booking-legend {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 8px;
+                font-size: 12px;
+                color: #6c757d;
+            }
+            .weekly-booking .wb-legend-item {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .weekly-booking .wb-legend-swatch {
+                width: 16px;
+                height: 10px;
+                border-radius: 3px;
+                border-left: 3px solid transparent;
+            }
+            .weekly-booking .wb-legend-saved {
+                background: #e8f6ef;
+                border-left-color: #28a745;
+            }
+            .weekly-booking .wb-legend-unsaved {
+                background: #fff4e5;
+                border-left-color: #f0ad4e;
+            }
+            .weekly-booking .wb-legend-suggested {
+                background: #e7f1ff;
+                border-left-color: #2f80ed;
+            }
         </style>
     `;
     $(styles).appendTo(page.body);
@@ -109,9 +160,13 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     const $user = $container.find("#weekly-booking-user");
     const $weekStart = $container.find("#weekly-booking-week-start");
     const $calendarWeek = $container.find("#weekly-booking-calendar-week");
-    const $periodLabel = $container.find("#weekly-booking-period-label");
     const $table = $container.find("#weekly-booking-table");
     const $summary = $container.find("#weekly-booking-summary");
+    const $todayButton = $container.find("#weekly-booking-today");
+    let weekStartPicker = null;
+    let isSyncingWeekStart = false;
+    let pendingScrollDayIndex = null;
+    let highlightTimer = null;
 
     $user.val(frappe.session.user);
 
@@ -150,6 +205,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                             <div class="wb-day-name">${__("Sun")}</div>
                             <div class="wb-day-date"></div>
                         </th>
+                        <th class="wb-actions-col"></th>
                     </tr>
                 </thead>
                 <tbody id="weekly-booking-rows"></tbody>
@@ -164,12 +220,27 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                         <td class="weekly-booking-total" data-field="friday_hours">0</td>
                         <td class="weekly-booking-total" data-field="saturday_hours">0</td>
                         <td class="weekly-booking-total" data-field="sunday_hours">0</td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>
         </div>
         <div class="mt-2">
             <button class="btn btn-default" id="weekly-booking-add-row">+ ${__("Add Row")}</button>
+        </div>
+        <div class="weekly-booking-legend">
+            <span><strong>${__("Legend")}</strong></span>
+            <span class="wb-legend-item">
+                <span class="wb-legend-swatch wb-legend-saved"></span>${__("Saved rows")}
+            </span>
+            <span class="wb-legend-item">
+                <span class="wb-legend-swatch wb-legend-unsaved"></span>${__("Unsaved rows")}
+            </span>
+            <span class="wb-legend-item">
+                <span class="wb-legend-swatch wb-legend-suggested"></span>${__(
+                    "Suggested from last week"
+                )}
+            </span>
         </div>
     `;
 
@@ -209,7 +280,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     const $monthStatus = $summary.find("#weekly-booking-month-status");
     const $hoursBalance = $summary.find("#weekly-booking-hours-balance");
 
-    const dividerColspan = 2 + 7;
+    const dividerColspan = 2 + 7 + 1;
     const hourFields = [
         { field: "monday_hours", class: "wb-mon" },
         { field: "tuesday_hours", class: "wb-tue" },
@@ -270,6 +341,53 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         return parts.join("||");
     }
 
+    function buildSuggestionKey(row) {
+        return `${row.project || ""}||${(row.note || "").trim()}`;
+    }
+
+    function buildSuggestionRows(previousRows, currentRows) {
+        const currentKeys = new Set();
+        (currentRows || []).forEach((row) => {
+            if (row.project || row.note) {
+                currentKeys.add(buildSuggestionKey(row));
+            }
+        });
+
+        const seen = new Set();
+        const suggestions = [];
+        (previousRows || []).forEach((row) => {
+            const project = row.project || "";
+            const note = (row.note || "").trim();
+            if (!project && !note) {
+                return;
+            }
+            const key = `${project}||${note}`;
+            if (currentKeys.has(key) || seen.has(key)) {
+                return;
+            }
+            seen.add(key);
+            suggestions.push({ project, note });
+        });
+        return suggestions;
+    }
+
+    function rowHasHours($row) {
+        let hasHours = false;
+        $row.find(".wb-hours").each(function () {
+            if (parseMinutes($(this).val()) > 0) {
+                hasHours = true;
+                return false;
+            }
+        });
+        return hasHours;
+    }
+
+    function rowHasProjectAndNote($row) {
+        const project = $row.find(".wb-project").val();
+        const note = ($row.find(".wb-note").val() || "").trim();
+        return Boolean(project && note);
+    }
+
     function buildSignatureFromRow($row) {
         const minutesByField = {};
         hourFields.forEach((field) => {
@@ -323,6 +441,13 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
         getDataRows().each(function () {
             const $row = $(this);
+            if ($row.hasClass("wb-row-suggested")) {
+                if (!rowHasHours($row)) {
+                    $row.removeClass("wb-row-saved wb-row-unsaved");
+                    return;
+                }
+                $row.removeClass("wb-row-suggested");
+            }
             if (!isRowFilled($row)) {
                 $row.removeClass("wb-row-saved wb-row-unsaved");
                 return;
@@ -345,13 +470,118 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         );
     }
 
+    function addSectionDividerRow() {
+        $rows.append(
+            `<tr class="wb-divider-row wb-section-divider" data-row-type="divider"><td colspan="${dividerColspan}"></td></tr>`
+        );
+    }
+
     function getDataRows() {
         return $rows.find("tr").not(".wb-divider-row");
     }
 
     const increaseLabel = __("Increase time");
     const decreaseLabel = __("Decrease time");
+    const removeRowLabel = __("Remove row");
     const maxCellMinutes = 24 * 60;
+
+    function getWeekStartValue() {
+        return $weekStart.data("weekStart");
+    }
+
+    function formatWeekRange(dateStr) {
+        const start = moment(dateStr, "YYYY-MM-DD", true);
+        if (!start.isValid()) {
+            return dateStr || "";
+        }
+        const end = start.clone().add(6, "days");
+        return `${start.format("DD.MM.YYYY")} - ${end.format("DD.MM.YYYY")}`;
+    }
+
+    function scrollToDayColumn(dayIndex) {
+        if (dayIndex === null || dayIndex === undefined) {
+            return;
+        }
+        const $wrap = $table.find(".weekly-booking-tableWrap");
+        const $header = $table.find(`.wb-day-header[data-day="${dayIndex}"]`);
+        if (!$wrap.length || !$header.length) {
+            return;
+        }
+        const headerLeft =
+            $header.offset().left - $wrap.offset().left + $wrap.scrollLeft();
+        const padding = 12;
+        $wrap.animate({ scrollLeft: Math.max(0, headerLeft - padding) }, 150);
+    }
+
+    function highlightDayColumn(dayIndex) {
+        if (dayIndex === null || dayIndex === undefined) {
+            return;
+        }
+        if (highlightTimer) {
+            clearTimeout(highlightTimer);
+            highlightTimer = null;
+        }
+        const dayColumnIndex = dayIndex + 3;
+        $table.find(".wb-day-highlight").removeClass("wb-day-highlight");
+        const $header = $table.find(`.wb-day-header[data-day="${dayIndex}"]`);
+        const $bodyCells = $rows.find(
+            `tr:not(.wb-divider-row) td:nth-child(${dayColumnIndex})`
+        );
+        const $footerCells = $table.find(`tfoot td:nth-child(${dayColumnIndex})`);
+        $header.addClass("wb-day-highlight");
+        $bodyCells.addClass("wb-day-highlight");
+        $footerCells.addClass("wb-day-highlight");
+        highlightTimer = setTimeout(() => {
+            $header.removeClass("wb-day-highlight");
+            $bodyCells.removeClass("wb-day-highlight");
+            $footerCells.removeClass("wb-day-highlight");
+            highlightTimer = null;
+        }, 900);
+    }
+
+    function initWeekStartPicker() {
+        if (!$.fn.datepicker) {
+            return;
+        }
+        let lang = (frappe.boot.user && frappe.boot.user.language) || "en";
+        if (!$.fn.datepicker.language[lang]) {
+            lang = "en";
+        }
+        $weekStart.datepicker({
+            language: lang,
+            autoClose: true,
+            dateFormat: "yyyy-mm-dd",
+            firstDay: frappe.datetime.get_first_day_of_the_week_index(),
+            onSelect: function (formattedDate, date) {
+                if (isSyncingWeekStart || !date) {
+                    return;
+                }
+                const selected = moment(date);
+                const start = selected.clone().startOf("isoWeek");
+                pendingScrollDayIndex = selected.diff(start, "days");
+                setWeekStart(start.format("YYYY-MM-DD"));
+            },
+        });
+        weekStartPicker = $weekStart.data("datepicker");
+        $weekStart.on("click", function () {
+            if (weekStartPicker) {
+                weekStartPicker.show();
+            }
+        });
+    }
+
+    function syncWeekStartPicker(dateStr) {
+        if (!weekStartPicker || !dateStr) {
+            return;
+        }
+        const date = moment(dateStr, "YYYY-MM-DD", true);
+        if (!date.isValid()) {
+            return;
+        }
+        isSyncingWeekStart = true;
+        weekStartPicker.selectDate(date.toDate());
+        isSyncingWeekStart = false;
+    }
 
     function buildTimeCell(className) {
         return `
@@ -364,7 +594,14 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             </div>
         `;
     }
-    function addRow(row = {}, skipTotals = false) {
+    function addRow(row = {}, options = {}) {
+        const { skipTotals = false, rowType = "data" } = options;
+        const deleteCellHtml =
+            rowType === "suggestion"
+                ? ""
+                : `<button type="button" class="btn btn-default btn-sm wb-row-delete" title="${removeRowLabel}" aria-label="${removeRowLabel}">
+                        <i class="fa fa-trash"></i>
+                    </button>`;
         const $row = $(
             `<tr>
                 <td class="wb-project-col"><select class="form-control wb-project"></select></td>
@@ -376,8 +613,18 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 <td>${buildTimeCell("wb-fri")}</td>
                 <td>${buildTimeCell("wb-sat")}</td>
                 <td>${buildTimeCell("wb-sun")}</td>
+                <td class="wb-actions-col wb-actions-cell">
+                    ${deleteCellHtml}
+                </td>
             </tr>`
         );
+
+        if (rowType) {
+            $row.attr("data-row-type", rowType);
+        }
+        if (rowType === "suggestion") {
+            $row.addClass("wb-row-suggested");
+        }
 
         $row.find(".wb-project").html(buildProjectOptions(row.project));
         $row.find(".wb-note").val(row.note || "");
@@ -398,19 +645,29 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         }
     }
 
-    function renderRows(rows) {
+    function renderRows(rows, suggestedRows) {
+        const suggestions = suggestedRows || [];
+        const hasRows = rows && rows.length;
+        const hasSuggestions = suggestions.length > 0;
         $rows.empty();
-        if (rows && rows.length) {
-            rows.forEach((row) => addRow(row, true));
+        if (hasRows) {
+            rows.forEach((row) => addRow(row, { skipTotals: true }));
         }
 
-        if (rows && rows.length) {
+        if (hasRows && hasSuggestions) {
+            addSectionDividerRow();
+        } else if (hasRows) {
+            addDividerRow();
+        }
+
+        if (hasSuggestions) {
+            suggestions.forEach((row) => addRow(row, { skipTotals: true, rowType: "suggestion" }));
             addDividerRow();
         }
 
         const emptyRows = 3;
         for (let i = 0; i < emptyRows; i++) {
-            addRow({}, true);
+            addRow({}, { skipTotals: true });
         }
         updateTotals();
         applyRowHighlights();
@@ -439,7 +696,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     }
 
     function updateDayHeaders() {
-        const weekStart = $weekStart.val();
+        const weekStart = getWeekStartValue();
         const format = state.day_label_format || "DD.MM.YYYY";
         const start = weekStart ? moment(weekStart, "YYYY-MM-DD") : null;
 
@@ -456,7 +713,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     }
 
     function loadWeek() {
-        const weekStart = $weekStart.val();
+        const weekStart = getWeekStartValue();
         if (!weekStart) {
             frappe.msgprint({
                 title: __("Missing Value"),
@@ -491,16 +748,17 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 } else {
                     $calendarWeek.val(message.calendar_week || "");
                 }
-                $periodLabel.val(message.period_label || "");
+                $weekStart.val(message.period_label || formatWeekRange(weekStart));
                 updateDayHeaders();
 
                 const rows = message.rows || [];
+                const suggestions = buildSuggestionRows(message.previous_week_rows || [], rows);
                 state.loaded_week_total_minutes = calculateWeekMinutes(rows);
                 state.saved_row_counts = buildSavedRowCounts(rows);
                 if (!state.projects_loaded) {
-                    loadProjects(() => renderRows(rows));
+                    loadProjects(() => renderRows(rows, suggestions));
                 } else {
-                    renderRows(rows);
+                    renderRows(rows, suggestions);
                 }
 
                 if (message.warning) {
@@ -512,6 +770,11 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 }
 
                 updateHoursBalance();
+                if (pendingScrollDayIndex !== null) {
+                    scrollToDayColumn(pendingScrollDayIndex);
+                    highlightDayColumn(pendingScrollDayIndex);
+                    pendingScrollDayIndex = null;
+                }
             },
         });
     }
@@ -520,6 +783,11 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         const rows = [];
         getDataRows().each(function () {
             const $row = $(this);
+            const isSuggested = $row.hasClass("wb-row-suggested");
+            const hasHours = rowHasHours($row);
+            if (isSuggested && !hasHours) {
+                return;
+            }
             const rowData = {
                 project: $row.find(".wb-project").val(),
                 note: $row.find(".wb-note").val(),
@@ -687,11 +955,33 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     }
 
     function saveWeek() {
-        const weekStart = $weekStart.val();
+        const weekStart = getWeekStartValue();
         if (!weekStart) {
             frappe.msgprint({
                 title: __("Missing Value"),
                 message: __("Week start is required."),
+                indicator: "red",
+            });
+            return;
+        }
+
+        let hasMissingHours = false;
+        getDataRows().each(function () {
+            const $row = $(this);
+            if ($row.hasClass("wb-row-suggested") && !rowHasHours($row)) {
+                return;
+            }
+            if (rowHasProjectAndNote($row) && !rowHasHours($row)) {
+                hasMissingHours = true;
+                return false;
+            }
+        });
+        if (hasMissingHours) {
+            frappe.msgprint({
+                title: __("Missing Value"),
+                message: __(
+                    "Please enter time for rows that have a project and note."
+                ),
                 indicator: "red",
             });
             return;
@@ -739,12 +1029,14 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     }
 
     function setWeekStart(dateStr) {
-        $weekStart.val(dateStr);
+        $weekStart.data("weekStart", dateStr);
+        $weekStart.val(formatWeekRange(dateStr));
+        syncWeekStartPicker(dateStr);
         loadWeek();
     }
 
     function shiftWeek(days) {
-        const current = $weekStart.val() || frappe.datetime.get_today();
+        const current = getWeekStartValue() || frappe.datetime.get_today();
         const next = moment(current).add(days, "days").format("YYYY-MM-DD");
         setWeekStart(next);
     }
@@ -755,6 +1047,12 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     });
     $container.find("#weekly-booking-next").on("click", function () {
         shiftWeek(7);
+    });
+    $todayButton.on("click", function () {
+        const today = moment(frappe.datetime.get_today());
+        const start = today.clone().startOf("isoWeek");
+        pendingScrollDayIndex = today.diff(start, "days");
+        setWeekStart(start.format("YYYY-MM-DD"));
     });
     $addRowButton.on("click", function () {
         addRow({});
@@ -786,6 +1084,11 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         const $input = $step.closest(".wb-time-cell").find(".wb-hours");
         adjustInputMinutes($input, delta);
     });
+    $rows.on("click", ".wb-row-delete", function () {
+        $(this).closest("tr").remove();
+        updateTotals();
+        applyRowHighlights();
+    });
     $rows.on("input change", ".wb-hours", function () {
         applyRowHighlights();
         updateTotals();
@@ -794,11 +1097,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     $addRowButton.prop("disabled", true);
     loadProjects();
     renderRows([]);
+    initWeekStartPicker();
 
     const currentWeekStart = moment(frappe.datetime.get_today())
         .startOf("isoWeek")
         .format("YYYY-MM-DD");
     setWeekStart(currentWeekStart);
 };
-
-

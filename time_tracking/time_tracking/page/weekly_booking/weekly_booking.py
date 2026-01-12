@@ -4,6 +4,11 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, formatdate, getdate
 
+from time_tracking.time_tracking.vacation_utils import (
+    get_vacation_balance,
+    get_vacation_project,
+)
+
 DAY_FIELDS = [
     "monday_hours",
     "tuesday_hours",
@@ -75,6 +80,10 @@ def _get_monthly_target_hours(user):
     return frappe.db.get_value("Time Tracking Profile", {"user": user}, "monthly_target_hours")
 
 
+def _get_target_period(user):
+    return frappe.db.get_value("Time Tracking Profile", {"user": user}, "target_period")
+
+
 def _get_overtime_balance_hours(user):
     return frappe.db.get_value("Time Tracking Profile", {"user": user}, "overtime_balance_hours")
 
@@ -122,12 +131,15 @@ def _get_assigned_projects(user):
         fields=["project"],
     )
     project_names = [row.project for row in assignments if row.project]
+    vacation_project = get_vacation_project()
+    if vacation_project and vacation_project not in project_names:
+        project_names.append(vacation_project)
     if not project_names:
         return []
 
     projects = frappe.get_all(
         "Time Tracking Project",
-        filters={"name": ["in", project_names], "is_group": 0},
+        filters={"name": ["in", project_names], "is_group": 0, "not_bookable": 0},
         fields=["name", "project_name"],
     )
     project_map = {project.name: project for project in projects}
@@ -136,6 +148,45 @@ def _get_assigned_projects(user):
 
 def _get_assigned_project_names(user):
     return {project.name for project in _get_assigned_projects(user)}
+
+
+def _get_not_bookable_projects(project_names):
+    if not project_names:
+        return set()
+
+    return set(
+        frappe.get_all(
+            "Time Tracking Project",
+            filters={"name": ["in", list(project_names)], "not_bookable": 1},
+            pluck="name",
+        )
+    )
+
+
+def _get_vacation_summary(profile_name, week_start_date):
+    vacation_project = get_vacation_project()
+    if not vacation_project:
+        return {"enabled": False}
+
+    profile = frappe.get_doc("Time Tracking Profile", profile_name)
+    balance = get_vacation_balance(profile, week_start_date)
+    if not balance:
+        return {"enabled": False}
+
+    if not balance.get("valid"):
+        return {
+            "enabled": True,
+            "valid": False,
+            "error": _("Set target hours and workdays per week to calculate vacation."),
+        }
+
+    return {
+        "enabled": True,
+        "valid": True,
+        "remaining_days": balance.get("remaining_days"),
+        "used_days": balance.get("used_days"),
+        "allowance_days": balance.get("allowance_days"),
+    }
 
 
 def _get_time_booking_rows(user, week_start_date):
@@ -181,7 +232,16 @@ def _get_time_booking_rows(user, week_start_date):
 def _get_previous_week_rows(user, week_start_date):
     week_start = getdate(week_start_date)
     previous_week_start = add_days(week_start, -7)
-    return _get_time_booking_rows(user, previous_week_start)
+    rows = _get_time_booking_rows(user, previous_week_start)
+    if not rows:
+        return []
+
+    project_names = {row.get("project") for row in rows if row.get("project")}
+    not_bookable_projects = _get_not_bookable_projects(project_names)
+    if not not_bookable_projects:
+        return rows
+
+    return [row for row in rows if row.get("project") not in not_bookable_projects]
 
 
 def _build_booking_minutes_map(bookings):
@@ -204,13 +264,13 @@ def get_weekly_booking(user=None, week_start_date=None):
     if user != frappe.session.user and not _is_admin():
         frappe.throw(_("Not permitted to load bookings for another user."))
 
-    _require_profile(user)
+    profile_name = _require_profile(user)
 
     calendar_week, calendar_year, week_end_date, period_label, warning = _get_week_info(
         week_start_date
     )
 
-    return {
+    response = {
         "rows": _get_time_booking_rows(user, week_start_date),
         "previous_week_rows": _get_previous_week_rows(user, week_start_date),
         "warning": warning,
@@ -222,9 +282,13 @@ def get_weekly_booking(user=None, week_start_date=None):
         "day_label_date_format": _get_day_label_date_format(),
         "weekly_target_hours": _get_weekly_target_hours(user),
         "monthly_target_hours": _get_monthly_target_hours(user),
+        "target_period": _get_target_period(user),
         "overtime_balance_hours": _get_overtime_balance_hours(user),
         "monthly_total_hours": _get_month_total_hours(user, week_start_date),
     }
+
+    response["vacation"] = _get_vacation_summary(profile_name, week_start_date)
+    return response
 
 
 @frappe.whitelist()
@@ -261,31 +325,48 @@ def save_weekly_booking(data):
     week_end = add_days(week_start, 6)
 
     hour_fields = DAY_FIELDS
+    row_projects = {row.get("project") for row in rows if row.get("project")}
+    existing_bookings = frappe.get_all(
+        "Time Booking",
+        filters={
+            "time_tracking_profile": profile_name,
+            "date": ["between", [week_start, week_end]],
+        },
+        fields=["project", "notes", "date", "duration_minutes"],
+    )
+    existing_minutes = _build_booking_minutes_map(existing_bookings) if existing_bookings else {}
+    existing_projects = {booking.project for booking in existing_bookings if booking.project}
+    not_bookable_projects = _get_not_bookable_projects(row_projects | existing_projects)
+    existing_not_bookable_minutes = {}
+    if existing_minutes and not_bookable_projects:
+        existing_not_bookable_minutes = {
+            key: minutes
+            for key, minutes in existing_minutes.items()
+            if key[0] in not_bookable_projects
+        }
+
     assigned_project_names = None
     existing_unassigned_minutes = {}
     existing_unassigned_projects = set()
     row_unassigned_minutes = {}
+    row_not_bookable_minutes = {}
     if not _is_admin():
         assigned_project_names = _get_assigned_project_names(user)
-        existing_bookings = frappe.get_all(
-            "Time Booking",
-            filters={
-                "time_tracking_profile": profile_name,
-                "date": ["between", [week_start, week_end]],
-            },
-            fields=["project", "notes", "date", "duration_minutes"],
-        )
-        if existing_bookings:
-            existing_minutes = _build_booking_minutes_map(existing_bookings)
+        if existing_minutes:
             if assigned_project_names:
                 existing_unassigned_minutes = {
                     key: minutes
                     for key, minutes in existing_minutes.items()
                     if key[0] not in assigned_project_names
+                    and key[0] not in not_bookable_projects
                 }
             else:
-                existing_unassigned_minutes = existing_minutes
-            existing_unassigned_projects = {key[0] for key in existing_unassigned_minutes}
+                existing_unassigned_minutes = {
+                    key: minutes
+                    for key, minutes in existing_minutes.items()
+                    if key[0] not in not_bookable_projects
+                }
+        existing_unassigned_projects = {key[0] for key in existing_unassigned_minutes}
 
     increment = _get_increment_minutes()
     time_bookings = []
@@ -305,6 +386,18 @@ def save_weekly_booking(data):
                 frappe.throw(_("Note is required for bookings."))
 
         if row_project:
+            if row_project in not_bookable_projects:
+                for idx, field in enumerate(hour_fields):
+                    minutes = int(round(flt(hours.get(field)) * 60))
+                    if minutes <= 0:
+                        continue
+                    date_key = str(add_days(week_start, idx))
+                    key = (row_project, row_note, date_key)
+                    row_not_bookable_minutes[key] = (
+                        row_not_bookable_minutes.get(key, 0) + minutes
+                    )
+                continue
+
             if assigned_project_names is not None and row_project not in assigned_project_names:
                 if row_project not in existing_unassigned_projects:
                     frappe.throw(
@@ -346,6 +439,20 @@ def save_weekly_booking(data):
                 }
             )
 
+    if existing_not_bookable_minutes or row_not_bookable_minutes:
+        mismatched_projects = set()
+        for key, minutes in existing_not_bookable_minutes.items():
+            if row_not_bookable_minutes.get(key) != minutes:
+                mismatched_projects.add(key[0])
+        for key in row_not_bookable_minutes:
+            if key not in existing_not_bookable_minutes:
+                mismatched_projects.add(key[0])
+        if mismatched_projects:
+            project_list = ", ".join(sorted(mismatched_projects))
+            frappe.throw(
+                _("Projects not bookable cannot be edited: {0}").format(project_list)
+            )
+
     if assigned_project_names is not None and existing_unassigned_minutes:
         mismatched_projects = set()
         for key, minutes in existing_unassigned_minutes.items():
@@ -363,22 +470,24 @@ def save_weekly_booking(data):
             )
 
     if assigned_project_names is None:
-        frappe.db.delete(
-            "Time Booking",
-            {
-                "time_tracking_profile": profile_name,
-                "date": ["between", [week_start, week_end]],
-            },
-        )
+        delete_filters = {
+            "time_tracking_profile": profile_name,
+            "date": ["between", [week_start, week_end]],
+        }
+        if not_bookable_projects:
+            delete_filters["project"] = ["not in", list(not_bookable_projects)]
+        frappe.db.delete("Time Booking", delete_filters)
     elif assigned_project_names:
-        frappe.db.delete(
-            "Time Booking",
-            {
-                "time_tracking_profile": profile_name,
-                "date": ["between", [week_start, week_end]],
-                "project": ["in", list(assigned_project_names)],
-            },
-        )
+        editable_projects = set(assigned_project_names) - set(not_bookable_projects)
+        if editable_projects:
+            frappe.db.delete(
+                "Time Booking",
+                {
+                    "time_tracking_profile": profile_name,
+                    "date": ["between", [week_start, week_end]],
+                    "project": ["in", list(editable_projects)],
+                },
+            )
 
     for booking in time_bookings:
         doc = frappe.new_doc("Time Booking")
@@ -401,4 +510,6 @@ def save_weekly_booking(data):
         "week_end_date": week_end_date,
         "period_label": period_label,
         "monthly_total_hours": _get_month_total_hours(user, week_start_date),
+        "target_period": _get_target_period(user),
+        "vacation": _get_vacation_summary(profile_name, week_start_date),
     }

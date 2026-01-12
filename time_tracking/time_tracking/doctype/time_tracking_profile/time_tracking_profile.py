@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, now_datetime
+from time_tracking.time_tracking.vacation_utils import get_default_workdays_per_week
 
 TARGET_PERIOD_WEEKLY = "Weekly"
 TARGET_PERIOD_MONTHLY = "Monthly"
@@ -12,8 +13,11 @@ class TimeTrackingProfile(Document):
         self._validate_overtime_balance()
         self._validate_target_period()
         self._validate_target_values()
+        self._set_default_workdays_per_week()
+        self._validate_workdays_per_week()
         self._validate_hourly_rate()
         self._validate_vacation_days()
+        self._validate_project_assignments()
 
     def _validate_overtime_balance(self):
         if _is_admin():
@@ -74,6 +78,22 @@ class TimeTrackingProfile(Document):
 
         frappe.throw(_("Targets can only be updated using the target adjustment buttons."))
 
+    def _set_default_workdays_per_week(self):
+        if flt(self.workdays_per_week) > 0:
+            return
+
+        default_value = get_default_workdays_per_week()
+        if default_value > 0:
+            self.workdays_per_week = default_value
+
+    def _validate_workdays_per_week(self):
+        if self.workdays_per_week is None:
+            return
+
+        value = flt(self.workdays_per_week)
+        if value <= 0:
+            frappe.throw(_("Workdays per week must be greater than 0."))
+
     def _validate_vacation_days(self):
         if _is_admin():
             return
@@ -106,6 +126,30 @@ class TimeTrackingProfile(Document):
             if previous and flt(previous.hourly_rate) != current:
                 frappe.throw(_("Hourly rate can only be updated by an admin."))
 
+    def _validate_project_assignments(self):
+        if not _require_project_assignment_setting() or _is_admin():
+            return
+
+        if self.is_new():
+            if any(row.project for row in self.project_assignments or []):
+                frappe.throw(_("Project assignments can only be managed by an admin."))
+            return
+
+        previous = self.get_doc_before_save()
+        if not previous:
+            return
+
+        def _normalize(rows):
+            values = []
+            for row in rows or []:
+                if not row.project:
+                    continue
+                values.append((row.project, int(row.active) if row.active is not None else 0))
+            return sorted(values)
+
+        if _normalize(self.project_assignments) != _normalize(previous.project_assignments):
+            frappe.throw(_("Project assignments can only be managed by an admin."))
+
 
 def _is_admin(user=None):
     if not user:
@@ -124,6 +168,15 @@ def _is_manager(user=None):
 def _track_target_adjustments_enabled():
     return cint(
         frappe.db.get_single_value("Time Tracking Settings", "track_target_adjustments")
+        or 0
+    )
+
+
+def _require_project_assignment_setting():
+    return cint(
+        frappe.db.get_single_value(
+            "Time Tracking Settings", "require_project_assignment"
+        )
         or 0
     )
 

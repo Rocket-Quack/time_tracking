@@ -1,6 +1,14 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
+
+from time_tracking.time_tracking.vacation_utils import (
+    get_allow_negative_vacation_balance,
+    get_hours_per_vacation_day,
+    get_vacation_balance,
+    get_vacation_project,
+)
 
 class TimeBooking(Document):
     def validate(self):
@@ -9,6 +17,7 @@ class TimeBooking(Document):
         self._validate_project()
         self._validate_notes()
         self._validate_duration_increment()
+        self._validate_vacation_balance()
 
     def _is_admin(self):
         roles = frappe.get_roles(frappe.session.user)
@@ -60,9 +69,14 @@ class TimeBooking(Document):
         if is_group:
             frappe.throw(_("Project {0} is a group and cannot be booked.").format(self.project))
 
+        is_not_bookable = frappe.db.get_value("Time Tracking Project", self.project, "not_bookable")
+        if is_not_bookable:
+            frappe.throw(_("Project {0} is not bookable.").format(self.project))
+
         if not self._is_admin():
+            vacation_project = get_vacation_project()
             assigned_projects = self._get_assigned_project_names()
-            if self.project not in assigned_projects:
+            if self.project not in assigned_projects and self.project != vacation_project:
                 frappe.throw(
                     _("Project {0} is not assigned to your profile.").format(self.project)
                 )
@@ -86,4 +100,38 @@ class TimeBooking(Document):
         if self.duration_minutes % increment:
             frappe.throw(
                 _("Duration must be a multiple of {0} minutes.").format(increment)
+            )
+
+    def _validate_vacation_balance(self):
+        vacation_project = get_vacation_project()
+        if not vacation_project or self.project != vacation_project:
+            return
+
+        if not self.date:
+            return
+
+        profile = frappe.get_doc("Time Tracking Profile", self.time_tracking_profile)
+        hours_per_day = get_hours_per_vacation_day(profile)
+        if hours_per_day <= 0:
+            frappe.throw(_("Vacation balance requires target hours and workdays per week."))
+
+        balance = get_vacation_balance(
+            profile,
+            self.date,
+            exclude_booking_name=None if self.is_new() else self.name,
+        )
+        if not balance or not balance.get("valid"):
+            frappe.throw(_("Vacation balance requires target hours and workdays per week."))
+
+        allowance_minutes = flt(balance.get("allowance_minutes"))
+        used_minutes = flt(balance.get("used_minutes"))
+        total_minutes = used_minutes + flt(self.duration_minutes)
+        remaining_minutes = allowance_minutes - total_minutes
+
+        if remaining_minutes < 0 and not get_allow_negative_vacation_balance():
+            remaining_days = abs(remaining_minutes) / (hours_per_day * 60)
+            frappe.throw(
+                _("Vacation balance would become negative by {0} days.").format(
+                    flt(remaining_days, 2)
+                )
             )

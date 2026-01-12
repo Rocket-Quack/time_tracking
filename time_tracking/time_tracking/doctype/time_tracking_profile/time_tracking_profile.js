@@ -26,6 +26,7 @@ function applyRateSettings(frm) {
 const DEFAULT_WEEKS_PER_MONTH = 52 / 12;
 const SETTINGS_DOCTYPE = "Time Tracking Settings";
 const TRACK_TARGET_ADJUSTMENTS_FIELD = "track_target_adjustments";
+const REQUIRE_PROJECT_ASSIGNMENT_FIELD = "require_project_assignment";
 
 function getTrackTargetAdjustmentsSetting(frm) {
     return frappe.db
@@ -44,6 +45,34 @@ function applyTargetAdjustmentVisibility(frm) {
         frm.set_df_property("target_adjustments_section", "hidden", !enabled);
         frm.set_df_property("target_adjustments", "hidden", !enabled);
         frm.refresh_field("target_adjustments");
+    });
+}
+
+function getRequireProjectAssignmentSetting() {
+    return frappe.db
+        .get_single_value(SETTINGS_DOCTYPE, REQUIRE_PROJECT_ASSIGNMENT_FIELD)
+        .then((value) => {
+            return Number(value) === 1;
+        });
+}
+
+function applyProjectAssignmentVisibility(frm) {
+    if (!frm.fields_dict.project_assignments) {
+        return;
+    }
+
+    getRequireProjectAssignmentSetting().then((enabled) => {
+        const isAdmin = isTargetAdmin();
+        const readOnly = enabled && !isAdmin;
+        const grid = frm.fields_dict.project_assignments.grid;
+        if (grid) {
+            grid.cannot_add_rows = readOnly;
+            grid.cannot_delete_rows = readOnly;
+            grid.only_sortable = readOnly;
+            grid.toggle_enable(!readOnly);
+        }
+        frm.set_df_property("project_assignments", "read_only", readOnly);
+        frm.refresh_field("project_assignments");
     });
 }
 
@@ -333,6 +362,7 @@ frappe.ui.form.on("Time Tracking Profile", {
                 return {
                     filters: {
                         is_group: 0,
+                        not_bookable: 0,
                     },
                 };
             };
@@ -344,5 +374,6 @@ frappe.ui.form.on("Time Tracking Profile", {
         addProfileLinks(frm);
         applyRateSettings(frm);
         applyTargetAdjustmentVisibility(frm);
+        applyProjectAssignmentVisibility(frm);
     },
 });

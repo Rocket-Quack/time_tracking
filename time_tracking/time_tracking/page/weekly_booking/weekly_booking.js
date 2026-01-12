@@ -151,6 +151,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         day_label_format: "DD.MM.YYYY",
         weekly_target_hours: null,
         monthly_target_hours: null,
+        target_period: null,
         month_total_minutes: 0,
         loaded_week_total_minutes: 0,
         overtime_balance_minutes: 0,
@@ -268,6 +269,13 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                     <div class="wb-summary-value" id="weekly-booking-hours-balance">0:00</div>
                 </div>
             </div>
+            <div class="card" id="weekly-booking-vacation-card" style="display: none;">
+                <div class="card-body">
+                    <div class="card-title text-muted">${__("Vacation Remaining")}</div>
+                    <div class="wb-summary-value" id="weekly-booking-vacation-remaining">0</div>
+                    <div class="wb-summary-status" id="weekly-booking-vacation-status"></div>
+                </div>
+            </div>
         </div>
     `;
     $summary.html(summaryHtml);
@@ -279,6 +287,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     const $monthTotal = $summary.find("#weekly-booking-month-total");
     const $monthStatus = $summary.find("#weekly-booking-month-status");
     const $hoursBalance = $summary.find("#weekly-booking-hours-balance");
+    const $vacationCard = $summary.find("#weekly-booking-vacation-card");
+    const $vacationRemaining = $summary.find("#weekly-booking-vacation-remaining");
+    const $vacationStatus = $summary.find("#weekly-booking-vacation-status");
 
     const dividerColspan = 2 + 7 + 1;
     const hourFields = [
@@ -739,6 +750,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 }
                 state.weekly_target_hours = message.weekly_target_hours || null;
                 state.monthly_target_hours = message.monthly_target_hours || null;
+                state.target_period = message.target_period || null;
                 state.month_total_minutes = Math.round(Number(message.monthly_total_hours || 0) * 60);
                 state.overtime_balance_minutes = Math.round(
                     Number(message.overtime_balance_hours || 0) * 60
@@ -770,6 +782,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 }
 
                 updateHoursBalance();
+                updateVacationSummary(message.vacation);
                 if (pendingScrollDayIndex !== null) {
                     scrollToDayColumn(pendingScrollDayIndex);
                     highlightDayColumn(pendingScrollDayIndex);
@@ -904,6 +917,12 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             state.month_total_minutes + (weekTotalMinutes - state.loaded_week_total_minutes);
         $monthTotal.text(formatMinutes(adjustedMonthTotal));
 
+        if (state.target_period === "Weekly") {
+            $monthStatus.text("").hide();
+            return;
+        }
+
+        $monthStatus.show();
         const targetHours = state.monthly_target_hours;
         if (!targetHours) {
             $monthStatus.text(__("Monthly target not set."));
@@ -925,6 +944,12 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     }
 
     function updateWeeklyStatus(weekTotalMinutes) {
+        if (state.target_period === "Monthly") {
+            $weekStatus.text("").hide();
+            return;
+        }
+
+        $weekStatus.show();
         const targetHours = state.weekly_target_hours;
         if (!targetHours) {
             $weekStatus.text(__("Weekly target not set."));
@@ -950,8 +975,43 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         return `${sign}${formatMinutes(Math.abs(totalMinutes))}`;
     }
 
+    function formatVacationDays(value) {
+        const rounded = Math.round(Number(value || 0) * 100) / 100;
+        return Number.isFinite(rounded) ? rounded.toString() : "0";
+    }
+
     function updateHoursBalance() {
         $hoursBalance.text(formatSignedMinutes(state.overtime_balance_minutes));
+    }
+
+    function updateVacationSummary(vacation) {
+        if (!vacation || !vacation.enabled) {
+            $vacationCard.hide();
+            return;
+        }
+
+        $vacationCard.show();
+        if (!vacation.valid) {
+            $vacationRemaining.text("--");
+            $vacationStatus
+                .text(vacation.error || __("Vacation balance is unavailable."))
+                .css("color", "#dc3545");
+            return;
+        }
+
+        const remaining = Number(vacation.remaining_days || 0);
+        const used = Number(vacation.used_days || 0);
+        const allowance = Number(vacation.allowance_days || 0);
+
+        $vacationRemaining.text(formatVacationDays(remaining));
+        $vacationStatus
+            .text(
+                __("Used {0} of {1} days.", [
+                    formatVacationDays(used),
+                    formatVacationDays(allowance),
+                ])
+            )
+            .css("color", remaining < 0 ? "#dc3545" : "#6c757d");
     }
 
     function saveWeek() {
@@ -1010,6 +1070,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 updateTotals();
                 state.saved_row_counts = buildSavedRowCounts(collectRows());
                 applyRowHighlights();
+                if (message.vacation) {
+                    updateVacationSummary(message.vacation);
+                }
 
                 frappe.msgprint({
                     title: __("Saved"),

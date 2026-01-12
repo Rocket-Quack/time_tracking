@@ -8,13 +8,21 @@
   "booking_rules_section",
   "weekly_booking_day_label_format",
   "time_booking_increment_minutes",
+  "team_tab",
+  "team_section",
+  "require_project_assignment",
   "billing_tab",
   "billing_rates_section",
   "rate_basis",
   "allow_profile_rate_override",
   "targets_tab",
   "targets_section",
-  "track_target_adjustments"
+  "track_target_adjustments",
+  "vacation_tab",
+  "vacation_section",
+  "vacation_booking_project",
+  "default_workdays_per_week",
+  "allow_negative_vacation_balance"
  ],
  "fields": [
   {
@@ -41,6 +49,23 @@
    "fieldtype": "Int",
    "label": "Time Booking Increment (Minutes)",
    "min_value": "1"
+  },
+  {
+   "fieldname": "team_tab",
+   "fieldtype": "Tab Break",
+   "label": "Team Management"
+  },
+  {
+   "fieldname": "team_section",
+   "fieldtype": "Section Break",
+   "label": "Project Access"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, only admins can assign projects to profiles. When disabled, users can self-assign.",
+   "fieldname": "require_project_assignment",
+   "fieldtype": "Check",
+   "label": "Require Project Assignment"
   },
   {
    "fieldname": "billing_tab",
@@ -83,6 +108,38 @@
    "fieldname": "track_target_adjustments",
    "fieldtype": "Check",
    "label": "Track Target Adjustments"
+  },
+  {
+   "fieldname": "vacation_tab",
+   "fieldtype": "Tab Break",
+   "label": "Vacation"
+  },
+  {
+   "fieldname": "vacation_section",
+   "fieldtype": "Section Break",
+   "label": "Vacation"
+  },
+  {
+   "description": "Project used for vacation bookings.",
+   "fieldname": "vacation_booking_project",
+   "fieldtype": "Link",
+   "label": "Vacation Booking Project",
+   "options": "Time Tracking Project"
+  },
+  {
+   "default": "5",
+   "description": "Default workdays per week for vacation calculations.",
+   "fieldname": "default_workdays_per_week",
+   "fieldtype": "Float",
+   "label": "Default Workdays per Week",
+   "min_value": "0.1"
+  },
+  {
+   "default": "0",
+   "description": "Allow vacation bookings to exceed available days.",
+   "fieldname": "allow_negative_vacation_balance",
+   "fieldtype": "Check",
+   "label": "Allow Negative Vacation Balance"
   }
  ],
  "icon": "fa fa-cog",

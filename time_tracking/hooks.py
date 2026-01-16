@@ -108,7 +108,7 @@ fixtures = [
 			]
 		],
 	},
-	{"dt": "Workspace", "filters": [["module", "=", "Time Tracking"]]},
+	{"dt": "Workspace", "filters": [["name", "=", "Time Tracking"]]},
 	{"dt": "Custom HTML Block", "filters": [["module", "=", "Time Tracking"]]},
 ]
 

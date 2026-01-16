@@ -21,6 +21,7 @@
   {
    "fieldname": "description",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Description"
   }
  ],

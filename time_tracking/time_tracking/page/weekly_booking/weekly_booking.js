@@ -39,6 +39,20 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             .weekly-booking .wb-day-header { text-align: center; min-width: 140px; }
             .weekly-booking .wb-day-name { font-weight: 600; }
             .weekly-booking .wb-day-date { font-size: 11px; color: #6c757d; }
+            .weekly-booking .wb-day-holiday-label {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+                color: #6c757d;
+                margin-bottom: 2px;
+            }
+            .weekly-booking .wb-day-holiday-col {
+                background: #f3f5f7;
+                box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.02);
+            }
+            .weekly-booking .wb-day-holiday-col .form-control {
+                background: #f3f5f7;
+            }
             .weekly-booking .form-control { height: 32px; padding: 2px 6px; }
             .weekly-booking .input-group-sm .form-control { height: 32px; }
             .weekly-booking .weekly-booking-timeCell { min-width: 140px; }
@@ -155,6 +169,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         month_total_minutes: 0,
         loaded_week_total_minutes: 0,
         overtime_balance_minutes: 0,
+        weekly_forecast_minutes: 0,
+        holiday_dates: [],
+        holiday_minutes_by_day: {},
+        holiday_hours_per_day: 0,
         saved_row_counts: new Map(),
     };
 
@@ -265,6 +283,12 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             </div>
             <div class="card">
                 <div class="card-body">
+                    <div class="card-title text-muted">${__("Forecast")}</div>
+                    <div class="wb-summary-value" id="weekly-booking-week-forecast">0:00</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
                     <div class="card-title text-muted">${__("Hours Balance")}</div>
                     <div class="wb-summary-value" id="weekly-booking-hours-balance">0:00</div>
                 </div>
@@ -286,6 +310,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
     const $weekStatus = $summary.find("#weekly-booking-week-status");
     const $monthTotal = $summary.find("#weekly-booking-month-total");
     const $monthStatus = $summary.find("#weekly-booking-month-status");
+    const $weekForecast = $summary.find("#weekly-booking-week-forecast");
     const $hoursBalance = $summary.find("#weekly-booking-hours-balance");
     const $vacationCard = $summary.find("#weekly-booking-vacation-card");
     const $vacationRemaining = $summary.find("#weekly-booking-vacation-remaining");
@@ -654,6 +679,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         if (!skipTotals) {
             updateTotals();
         }
+        updateHolidayMarkers();
     }
 
     function renderRows(rows, suggestedRows) {
@@ -721,6 +747,60 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             }
             $date.text(start.clone().add(offset, "days").format(format));
         });
+        updateHolidayMarkers();
+    }
+
+    function setHolidayData(dates, hoursPerDay) {
+        state.holiday_dates = Array.isArray(dates) ? dates : [];
+        const hours = Number(hoursPerDay);
+        state.holiday_hours_per_day = Number.isFinite(hours) ? hours : 0;
+    }
+
+    function updateHolidayMarkers() {
+        const weekStart = getWeekStartValue();
+        const start = weekStart ? moment(weekStart, "YYYY-MM-DD") : null;
+        const holidaySet = new Set(state.holiday_dates || []);
+        state.holiday_minutes_by_day = {};
+
+        $table.find(".wb-day-holiday-label").remove();
+        $table.find(".wb-day-holiday-col").removeClass("wb-day-holiday-col");
+        $table.find(".wb-hours").prop("readonly", false);
+        $table.find(".wb-step").prop("disabled", false);
+
+        $table.find(".wb-day-header").each(function () {
+            const $header = $(this);
+            const offset = Number.parseInt($header.data("day"), 10) || 0;
+            if (!start || !start.isValid()) {
+                return;
+            }
+            const dateStr = start.clone().add(offset, "days").format("YYYY-MM-DD");
+            if (holidaySet.has(dateStr)) {
+                const columnIndex = offset + 3;
+                const holidayMinutes = Math.round(state.holiday_hours_per_day * 60);
+                const holidayLabel = holidayMinutes
+                    ? `${__("Feiertag")} ${formatMinutes(holidayMinutes)}`
+                    : __("Feiertag");
+                $header.prepend(
+                    `<div class="wb-day-holiday-label">${holidayLabel}</div>`
+                );
+                state.holiday_minutes_by_day[offset] = Math.round(
+                    state.holiday_hours_per_day * 60
+                );
+                $table
+                    .find(`thead th:nth-child(${columnIndex})`)
+                    .addClass("wb-day-holiday-col");
+                const $bodyCells = $table
+                    .find(`tbody td:nth-child(${columnIndex})`)
+                    .addClass("wb-day-holiday-col");
+                $bodyCells.find(".wb-hours").prop("readonly", true);
+                $bodyCells.find(".wb-step").prop("disabled", true);
+                $table
+                    .find(`tfoot td:nth-child(${columnIndex})`)
+                    .addClass("wb-day-holiday-col");
+            } else {
+                $header.find(".wb-day-holiday-label").remove();
+            }
+        });
     }
 
     function loadWeek() {
@@ -761,6 +841,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                     $calendarWeek.val(message.calendar_week || "");
                 }
                 $weekStart.val(message.period_label || formatWeekRange(weekStart));
+                setHolidayData(message.holiday_dates, message.holiday_hours_per_day);
                 updateDayHeaders();
 
                 const rows = message.rows || [];
@@ -877,7 +958,15 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 total += parseMinutes(row[field.field]);
             });
         });
+        total += getHolidayWeekMinutes();
         return total;
+    }
+
+    function getHolidayWeekMinutes() {
+        return Object.values(state.holiday_minutes_by_day || {}).reduce(
+            (sum, value) => sum + value,
+            0
+        );
     }
 
     function updateTotals() {
@@ -898,16 +987,34 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             });
         });
 
+        const holidayMinutesByDay = state.holiday_minutes_by_day || {};
         let weekTotal = 0;
-        hourFields.forEach((field) => {
-            const total = totals[field.field];
+        let forecastTotal = 0;
+        hourFields.forEach((field, index) => {
+            const baseTotal = totals[field.field];
+            const holidayMinutes = holidayMinutesByDay[index] || 0;
+            const total = baseTotal + holidayMinutes;
             weekTotal += total;
+
+            const isWeekday = index < 5;
+            if (isWeekday) {
+                if (holidayMinutes || baseTotal) {
+                    forecastTotal += total;
+                } else {
+                    forecastTotal += total + state.holiday_hours_per_day * 60;
+                }
+            } else {
+                forecastTotal += total;
+            }
+
             $table
                 .find(`.weekly-booking-total[data-field="${field.field}"]`)
                 .text(formatMinutes(total));
         });
 
+        state.weekly_forecast_minutes = Math.round(forecastTotal);
         $weekTotal.text(formatMinutes(weekTotal));
+        $weekForecast.text(formatMinutes(state.weekly_forecast_minutes));
         updateWeeklyStatus(weekTotal);
         updateMonthlyStatus(weekTotal);
     }
@@ -1060,12 +1167,22 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             },
             callback: function (r) {
                 const message = r.message || {};
+                if (message.holiday_dates) {
+                    setHolidayData(message.holiday_dates, message.holiday_hours_per_day);
+                    updateDayHeaders();
+                }
                 const weekMinutes = calculateWeekMinutes(collectRows());
                 state.loaded_week_total_minutes = weekMinutes;
                 if (message.monthly_total_hours !== undefined) {
                     state.month_total_minutes = Math.round(
                         Number(message.monthly_total_hours || 0) * 60
                     );
+                }
+                if (message.overtime_balance_hours !== undefined) {
+                    state.overtime_balance_minutes = Math.round(
+                        Number(message.overtime_balance_hours || 0) * 60
+                    );
+                    updateHoursBalance();
                 }
                 updateTotals();
                 state.saved_row_counts = buildSavedRowCounts(collectRows());

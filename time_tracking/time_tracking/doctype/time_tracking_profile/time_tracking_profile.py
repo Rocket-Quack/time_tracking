@@ -11,6 +11,7 @@ TARGET_PERIODS = {TARGET_PERIOD_WEEKLY, TARGET_PERIOD_MONTHLY}
 class TimeTrackingProfile(Document):
     def validate(self):
         self._validate_overtime_balance()
+        self._validate_overtime_opening_balance()
         self._validate_target_period()
         self._validate_target_values()
         self._set_default_workdays_per_week()
@@ -19,6 +20,12 @@ class TimeTrackingProfile(Document):
         self._validate_vacation_days()
         self._validate_project_assignments()
 
+    def after_insert(self):
+        self._sync_opening_balance()
+
+    def on_update(self):
+        self._sync_opening_balance(previous=self.get_doc_before_save())
+
     def _validate_overtime_balance(self):
         if _is_admin():
             return
@@ -26,6 +33,18 @@ class TimeTrackingProfile(Document):
         previous = self.get_doc_before_save()
         if previous and flt(previous.overtime_balance_hours) != flt(self.overtime_balance_hours):
             frappe.throw(_("Overtime balance can only be updated by an admin."))
+
+    def _validate_overtime_opening_balance(self):
+        if _is_admin():
+            return
+
+        previous = self.get_doc_before_save()
+        if previous and flt(previous.overtime_opening_balance_hours) != flt(
+            self.overtime_opening_balance_hours
+        ):
+            frappe.throw(_("Opening overtime balance can only be updated by an admin."))
+        if not previous and flt(self.overtime_opening_balance_hours):
+            frappe.throw(_("Opening overtime balance can only be set by an admin."))
 
     def _validate_target_period(self):
         target_period = (self.target_period or "").strip()
@@ -149,6 +168,15 @@ class TimeTrackingProfile(Document):
 
         if _normalize(self.project_assignments) != _normalize(previous.project_assignments):
             frappe.throw(_("Project assignments can only be managed by an admin."))
+
+    def _sync_opening_balance(self, previous=None):
+        if previous and flt(previous.overtime_opening_balance_hours) == flt(
+            self.overtime_opening_balance_hours
+        ):
+            return
+        from time_tracking.time_tracking.overtime_utils import sync_opening_balance
+
+        sync_opening_balance(self)
 
 
 def _is_admin(user=None):

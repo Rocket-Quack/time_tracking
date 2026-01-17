@@ -18,6 +18,15 @@
   "targets_tab",
   "targets_section",
   "track_target_adjustments",
+  "overtime_tab",
+  "overtime_section",
+  "overtime_calculation_period",
+  "allow_target_period_override",
+  "include_vacation_in_overtime",
+  "include_sickness_in_overtime",
+  "allow_negative_overtime_balance",
+  "overtime_year_end_policy",
+  "carryover_limit_hours",
   "vacation_tab",
   "vacation_section",
   "vacation_booking_project",
@@ -114,6 +123,69 @@
    "fieldname": "track_target_adjustments",
    "fieldtype": "Check",
    "label": "Track Target Adjustments"
+  },
+  {
+   "fieldname": "overtime_tab",
+   "fieldtype": "Tab Break",
+   "label": "Overtime"
+  },
+  {
+   "fieldname": "overtime_section",
+   "fieldtype": "Section Break",
+   "label": "Overtime"
+  },
+  {
+   "default": "Weekly",
+   "description": "Default period used to calculate overtime balances.",
+   "fieldname": "overtime_calculation_period",
+   "fieldtype": "Select",
+   "label": "Overtime Calculation Period",
+   "options": "Weekly\nMonthly",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "When enabled, the profile target period can override the default overtime period.",
+   "fieldname": "allow_target_period_override",
+   "fieldtype": "Check",
+   "label": "Allow Target Period Override"
+  },
+  {
+   "default": "1",
+   "description": "Count vacation bookings towards overtime actuals.",
+   "fieldname": "include_vacation_in_overtime",
+   "fieldtype": "Check",
+   "label": "Include Vacation in Overtime"
+  },
+  {
+   "default": "1",
+   "description": "Count sickness bookings towards overtime actuals.",
+   "fieldname": "include_sickness_in_overtime",
+   "fieldtype": "Check",
+   "label": "Include Sickness in Overtime"
+  },
+  {
+   "default": "0",
+   "description": "Allow overtime balances to go negative.",
+   "fieldname": "allow_negative_overtime_balance",
+   "fieldtype": "Check",
+   "label": "Allow Negative Overtime Balance"
+  },
+  {
+   "default": "Cap",
+   "description": "How to handle overtime balances at year end.",
+   "fieldname": "overtime_year_end_policy",
+   "fieldtype": "Select",
+   "label": "Overtime Year End Policy",
+   "options": "Carryover\nCap\nReset",
+   "reqd": 1
+  },
+  {
+   "description": "Maximum hours to carry into the next year when policy is set to Cap.",
+   "fieldname": "carryover_limit_hours",
+   "fieldtype": "Float",
+   "label": "Carryover Limit (Hours)",
+   "depends_on": "eval:doc.overtime_year_end_policy === 'Cap'"
   },
   {
    "fieldname": "vacation_tab",

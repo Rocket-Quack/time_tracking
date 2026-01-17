@@ -1,0 +1,173 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:OT-{user}-{entry_type}-{period_type}-{period_start}",
+ "creation": "2026-01-16 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "time_tracking_profile",
+  "entry_type",
+  "period_type",
+  "period_start",
+  "period_end",
+  "target_minutes",
+  "actual_minutes",
+  "holiday_minutes",
+  "vacation_minutes",
+  "sickness_minutes",
+  "delta_minutes",
+  "calculation_source",
+  "calculated_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "time_tracking_profile",
+   "fieldtype": "Link",
+   "label": "Time Tracking Profile",
+   "options": "Time Tracking Profile",
+   "read_only": 1
+  },
+  {
+   "default": "Period",
+   "fieldname": "entry_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Entry Type",
+   "options": "Period\nOpening Balance\nYear End Adjustment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Period Type",
+   "options": "Weekly\nMonthly",
+   "depends_on": "eval:doc.entry_type === 'Period'",
+   "mandatory_depends_on": "eval:doc.entry_type === 'Period'"
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Period End",
+   "depends_on": "eval:doc.entry_type === 'Period'",
+   "mandatory_depends_on": "eval:doc.entry_type === 'Period'"
+  },
+  {
+   "fieldname": "target_minutes",
+   "fieldtype": "Int",
+   "label": "Target Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_minutes",
+   "fieldtype": "Int",
+   "label": "Actual Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "holiday_minutes",
+   "fieldtype": "Int",
+   "label": "Holiday Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vacation_minutes",
+   "fieldtype": "Int",
+   "label": "Vacation Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sickness_minutes",
+   "fieldtype": "Int",
+   "label": "Sickness Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "delta_minutes",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Delta Minutes",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculation_source",
+   "fieldtype": "Data",
+   "label": "Calculation Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculated_on",
+   "fieldtype": "Datetime",
+   "label": "Calculated On",
+   "read_only": 1
+  }
+ ],
+ "icon": "fa fa-history",
+ "idx": 1,
+ "links": [],
+ "modified": "2026-01-16 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "Time Tracking Overtime Ledger",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Manager"
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "user,period_start,entry_type",
+ "show_name_in_global_search": 1,
+ "sort_field": "period_start",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "period_start",
+ "track_changes": 1
+}

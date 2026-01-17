@@ -171,18 +171,27 @@ has_permission = {
 
 doc_events = {
 	"Time Booking": {
-		"after_insert": (
-			"time_tracking.time_tracking.doctype.time_tracking_project"
-			".time_tracking_project.handle_time_booking_insert"
-		),
-		"on_update": (
-			"time_tracking.time_tracking.doctype.time_tracking_project"
-			".time_tracking_project.handle_time_booking_update"
-		),
-		"on_trash": (
-			"time_tracking.time_tracking.doctype.time_tracking_project"
-			".time_tracking_project.handle_time_booking_trash"
-		),
+		"after_insert": [
+			(
+				"time_tracking.time_tracking.doctype.time_tracking_project"
+				".time_tracking_project.handle_time_booking_insert"
+			),
+			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+		],
+		"on_update": [
+			(
+				"time_tracking.time_tracking.doctype.time_tracking_project"
+				".time_tracking_project.handle_time_booking_update"
+			),
+			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+		],
+		"on_trash": [
+			(
+				"time_tracking.time_tracking.doctype.time_tracking_project"
+				".time_tracking_project.handle_time_booking_trash"
+			),
+			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+		],
 	},
 }
 

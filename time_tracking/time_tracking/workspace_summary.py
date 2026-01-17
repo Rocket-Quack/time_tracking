@@ -4,7 +4,12 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, flt, getdate, nowdate
 
+from time_tracking.time_tracking.overtime_utils import (
+    get_holiday_dates_for_range,
+    get_weekly_forecast,
+)
 from time_tracking.time_tracking.vacation_utils import (
+    get_hours_per_vacation_day,
     get_vacation_balance,
     get_vacation_project,
 )
@@ -45,6 +50,16 @@ def _get_time_booking_minutes(profile_name, start_date, end_date):
     if totals and totals[0].total is not None:
         return int(round(flt(totals[0].total)))
     return 0
+
+
+def _add_holiday_minutes(profile, start_date, end_date, total_minutes):
+    hours_per_day = flt(get_hours_per_vacation_day(profile))
+    if hours_per_day <= 0:
+        return total_minutes
+    holiday_dates = get_holiday_dates_for_range(start_date, end_date)
+    if not holiday_dates:
+        return total_minutes
+    return total_minutes + int(round(len(holiday_dates) * hours_per_day * 60))
 
 
 def _get_vacation_summary(profile, date):
@@ -88,13 +103,21 @@ def get_workspace_summary():
 
     weekly_total_minutes = _get_time_booking_minutes(profile.name, week_start, week_end)
     monthly_total_minutes = _get_time_booking_minutes(profile.name, month_start, month_end)
+    weekly_total_minutes = _add_holiday_minutes(
+        profile, week_start, week_end, weekly_total_minutes
+    )
+    monthly_total_minutes = _add_holiday_minutes(
+        profile, month_start, month_end, monthly_total_minutes
+    )
     hours_balance_minutes = int(round(flt(profile.overtime_balance_hours) * 60))
+    weekly_forecast = get_weekly_forecast(profile, week_start)
 
     return {
         "profile_missing": False,
         "weekly_total_minutes": weekly_total_minutes,
         "monthly_total_minutes": monthly_total_minutes,
         "hours_balance_minutes": hours_balance_minutes,
+        "weekly_forecast_minutes": weekly_forecast.get("forecast_minutes"),
         "weekly_target_hours": flt(profile.weekly_target_hours),
         "monthly_target_hours": flt(profile.monthly_target_hours),
         "target_period": profile.target_period,

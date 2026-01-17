@@ -4,7 +4,13 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, formatdate, getdate
 
+from time_tracking.time_tracking.overtime_utils import (
+    get_holiday_dates_for_range,
+    get_weekly_forecast,
+    recalculate_overtime_for_date,
+)
 from time_tracking.time_tracking.vacation_utils import (
+    get_hours_per_vacation_day,
     get_vacation_balance,
     get_vacation_project,
     get_sickness_project,
@@ -96,6 +102,16 @@ def _get_month_total_hours(user, week_start_date):
     last_day = calendar.monthrange(month_start.year, month_start.month)[1]
     month_end = month_start.replace(day=last_day)
     total_minutes = _get_time_booking_minutes(user, month_start, month_end)
+
+    profile_name = _get_profile_name(user)
+    if not profile_name:
+        return total_minutes / 60
+
+    profile = frappe.get_doc("Time Tracking Profile", profile_name)
+    hours_per_day = flt(get_hours_per_vacation_day(profile))
+    if hours_per_day > 0:
+        holiday_dates = get_holiday_dates_for_range(month_start, month_end)
+        total_minutes += len(holiday_dates) * hours_per_day * 60
     return total_minutes / 60
 
 
@@ -292,6 +308,17 @@ def get_weekly_booking(user=None, week_start_date=None):
         "monthly_total_hours": _get_month_total_hours(user, week_start_date),
     }
 
+    profile = frappe.get_doc("Time Tracking Profile", profile_name)
+    weekly_forecast = get_weekly_forecast(profile, week_start_date)
+    response.update(
+        {
+            "weekly_forecast_minutes": weekly_forecast.get("forecast_minutes"),
+            "weekly_actual_minutes": weekly_forecast.get("actual_minutes"),
+            "holiday_dates": weekly_forecast.get("holiday_dates"),
+            "holiday_hours_per_day": flt(get_hours_per_vacation_day(profile)),
+        }
+    )
+
     response["vacation"] = _get_vacation_summary(profile_name, week_start_date)
     return response
 
@@ -376,141 +403,151 @@ def save_weekly_booking(data):
     increment = _get_increment_minutes()
     time_bookings = []
 
-    for row in rows:
-        row_project = row.get("project")
-        row_note = (row.get("note") or "").strip()
-        hours = {field: _coerce_hours(row.get(field), field) for field in hour_fields}
+    frappe.flags.skip_overtime_recalc = True
+    try:
+        for row in rows:
+            row_project = row.get("project")
+            row_note = (row.get("note") or "").strip()
+            hours = {field: _coerce_hours(row.get(field), field) for field in hour_fields}
 
-        if not row_project and not row_note and not any(hours.values()):
-            continue
-
-        if any(hours.values()):
-            if not row_project:
-                frappe.throw(_("Project is required for bookings."))
-            if not row_note:
-                frappe.throw(_("Note is required for bookings."))
-
-        if row_project:
-            if row_project in not_bookable_projects:
-                for idx, field in enumerate(hour_fields):
-                    minutes = int(round(flt(hours.get(field)) * 60))
-                    if minutes <= 0:
-                        continue
-                    date_key = str(add_days(week_start, idx))
-                    key = (row_project, row_note, date_key)
-                    row_not_bookable_minutes[key] = (
-                        row_not_bookable_minutes.get(key, 0) + minutes
-                    )
+            if not row_project and not row_note and not any(hours.values()):
                 continue
 
-            if assigned_project_names is not None and row_project not in assigned_project_names:
-                if row_project not in existing_unassigned_projects:
+            if any(hours.values()):
+                if not row_project:
+                    frappe.throw(_("Project is required for bookings."))
+                if not row_note:
+                    frappe.throw(_("Note is required for bookings."))
+
+            if row_project:
+                if row_project in not_bookable_projects:
+                    for idx, field in enumerate(hour_fields):
+                        minutes = int(round(flt(hours.get(field)) * 60))
+                        if minutes <= 0:
+                            continue
+                        date_key = str(add_days(week_start, idx))
+                        key = (row_project, row_note, date_key)
+                        row_not_bookable_minutes[key] = (
+                            row_not_bookable_minutes.get(key, 0) + minutes
+                        )
+                    continue
+
+                if assigned_project_names is not None and row_project not in assigned_project_names:
+                    if row_project not in existing_unassigned_projects:
+                        frappe.throw(
+                            _("Project {0} is not assigned to your profile.").format(row_project)
+                        )
+                    for idx, field in enumerate(hour_fields):
+                        minutes = int(round(flt(hours.get(field)) * 60))
+                        if minutes <= 0:
+                            continue
+                        date_key = str(add_days(week_start, idx))
+                        key = (row_project, row_note, date_key)
+                        row_unassigned_minutes[key] = row_unassigned_minutes.get(key, 0) + minutes
+                    continue
+
+                if not frappe.db.exists("Time Tracking Project", row_project):
+                    frappe.throw(_("Project {0} does not exist.").format(row_project))
+
+                is_group = frappe.db.get_value(
+                    "Time Tracking Project", row_project, "is_group"
+                )
+                if is_group:
                     frappe.throw(
-                        _("Project {0} is not assigned to your profile.").format(row_project)
+                        _("Project {0} is a group and cannot be booked.").format(row_project)
                     )
-                for idx, field in enumerate(hour_fields):
-                    minutes = int(round(flt(hours.get(field)) * 60))
-                    if minutes <= 0:
-                        continue
-                    date_key = str(add_days(week_start, idx))
-                    key = (row_project, row_note, date_key)
-                    row_unassigned_minutes[key] = row_unassigned_minutes.get(key, 0) + minutes
-                continue
 
-            if not frappe.db.exists("Time Tracking Project", row_project):
-                frappe.throw(_("Project {0} does not exist.").format(row_project))
+            for idx, field in enumerate(hour_fields):
+                minutes = int(round(flt(hours.get(field)) * 60))
+                if minutes <= 0:
+                    continue
+                if minutes % increment:
+                    frappe.throw(
+                        _("Duration must be a multiple of {0} minutes.").format(increment)
+                    )
 
-            is_group = frappe.db.get_value("Time Tracking Project", row_project, "is_group")
-            if is_group:
-                frappe.throw(
-                    _("Project {0} is a group and cannot be booked.").format(row_project)
+                time_bookings.append(
+                    {
+                        "date": add_days(week_start, idx),
+                        "project": row_project,
+                        "notes": row_note,
+                        "duration_minutes": minutes,
+                    }
                 )
 
-        for idx, field in enumerate(hour_fields):
-            minutes = int(round(flt(hours.get(field)) * 60))
-            if minutes <= 0:
-                continue
-            if minutes % increment:
+        if time_bookings:
+            booking_dates = {booking["date"] for booking in time_bookings}
+            for booking_date in booking_dates:
+                validate_holiday_list_for_date(booking_date)
+
+        if existing_not_bookable_minutes or row_not_bookable_minutes:
+            mismatched_projects = set()
+            for key, minutes in existing_not_bookable_minutes.items():
+                if row_not_bookable_minutes.get(key) != minutes:
+                    mismatched_projects.add(key[0])
+            for key in row_not_bookable_minutes:
+                if key not in existing_not_bookable_minutes:
+                    mismatched_projects.add(key[0])
+            if mismatched_projects:
+                project_list = ", ".join(sorted(mismatched_projects))
                 frappe.throw(
-                    _("Duration must be a multiple of {0} minutes.").format(increment)
+                    _("Projects not bookable cannot be edited: {0}").format(project_list)
                 )
 
-            time_bookings.append(
-                {
-                    "date": add_days(week_start, idx),
-                    "project": row_project,
-                    "notes": row_note,
-                    "duration_minutes": minutes,
-                }
-            )
+        if assigned_project_names is not None and existing_unassigned_minutes:
+            mismatched_projects = set()
+            for key, minutes in existing_unassigned_minutes.items():
+                if row_unassigned_minutes.get(key) != minutes:
+                    mismatched_projects.add(key[0])
+            for key in row_unassigned_minutes:
+                if key not in existing_unassigned_minutes:
+                    mismatched_projects.add(key[0])
+            if mismatched_projects:
+                project_list = ", ".join(sorted(mismatched_projects))
+                frappe.throw(
+                    _(
+                        "Projects not assigned to your profile cannot be edited. Reassign to update: {0}"
+                    ).format(project_list)
+                )
 
-    if time_bookings:
-        booking_dates = {booking["date"] for booking in time_bookings}
-        for booking_date in booking_dates:
-            validate_holiday_list_for_date(booking_date)
+        if assigned_project_names is None:
+            delete_filters = {
+                "time_tracking_profile": profile_name,
+                "date": ["between", [week_start, week_end]],
+            }
+            if not_bookable_projects:
+                delete_filters["project"] = ["not in", list(not_bookable_projects)]
+            frappe.db.delete("Time Booking", delete_filters)
+        elif assigned_project_names:
+            editable_projects = set(assigned_project_names) - set(not_bookable_projects)
+            if editable_projects:
+                frappe.db.delete(
+                    "Time Booking",
+                    {
+                        "time_tracking_profile": profile_name,
+                        "date": ["between", [week_start, week_end]],
+                        "project": ["in", list(editable_projects)],
+                    },
+                )
 
-    if existing_not_bookable_minutes or row_not_bookable_minutes:
-        mismatched_projects = set()
-        for key, minutes in existing_not_bookable_minutes.items():
-            if row_not_bookable_minutes.get(key) != minutes:
-                mismatched_projects.add(key[0])
-        for key in row_not_bookable_minutes:
-            if key not in existing_not_bookable_minutes:
-                mismatched_projects.add(key[0])
-        if mismatched_projects:
-            project_list = ", ".join(sorted(mismatched_projects))
-            frappe.throw(
-                _("Projects not bookable cannot be edited: {0}").format(project_list)
-            )
+        for booking in time_bookings:
+            doc = frappe.new_doc("Time Booking")
+            doc.time_tracking_profile = profile_name
+            doc.date = booking["date"]
+            doc.project = booking["project"]
+            doc.notes = booking.get("notes")
+            doc.duration_minutes = booking["duration_minutes"]
+            doc.insert()
+    finally:
+        frappe.flags.skip_overtime_recalc = False
 
-    if assigned_project_names is not None and existing_unassigned_minutes:
-        mismatched_projects = set()
-        for key, minutes in existing_unassigned_minutes.items():
-            if row_unassigned_minutes.get(key) != minutes:
-                mismatched_projects.add(key[0])
-        for key in row_unassigned_minutes:
-            if key not in existing_unassigned_minutes:
-                mismatched_projects.add(key[0])
-        if mismatched_projects:
-            project_list = ", ".join(sorted(mismatched_projects))
-            frappe.throw(
-                _(
-                    "Projects not assigned to your profile cannot be edited. Reassign to update: {0}"
-                ).format(project_list)
-            )
-
-    if assigned_project_names is None:
-        delete_filters = {
-            "time_tracking_profile": profile_name,
-            "date": ["between", [week_start, week_end]],
-        }
-        if not_bookable_projects:
-            delete_filters["project"] = ["not in", list(not_bookable_projects)]
-        frappe.db.delete("Time Booking", delete_filters)
-    elif assigned_project_names:
-        editable_projects = set(assigned_project_names) - set(not_bookable_projects)
-        if editable_projects:
-            frappe.db.delete(
-                "Time Booking",
-                {
-                    "time_tracking_profile": profile_name,
-                    "date": ["between", [week_start, week_end]],
-                    "project": ["in", list(editable_projects)],
-                },
-            )
-
-    for booking in time_bookings:
-        doc = frappe.new_doc("Time Booking")
-        doc.time_tracking_profile = profile_name
-        doc.date = booking["date"]
-        doc.project = booking["project"]
-        doc.notes = booking.get("notes")
-        doc.duration_minutes = booking["duration_minutes"]
-        doc.insert()
+    recalculate_overtime_for_date(user, week_start_date, source="weekly_booking")
 
     calendar_week, calendar_year, week_end_date, period_label, warning = _get_week_info(
         week_start_date
     )
+    profile = frappe.get_doc("Time Tracking Profile", profile_name)
+    weekly_forecast = get_weekly_forecast(profile, week_start_date)
 
     return {
         "status": "ok",
@@ -521,5 +558,10 @@ def save_weekly_booking(data):
         "period_label": period_label,
         "monthly_total_hours": _get_month_total_hours(user, week_start_date),
         "target_period": _get_target_period(user),
+        "overtime_balance_hours": profile.overtime_balance_hours,
+        "weekly_forecast_minutes": weekly_forecast.get("forecast_minutes"),
+        "weekly_actual_minutes": weekly_forecast.get("actual_minutes"),
+        "holiday_dates": weekly_forecast.get("holiday_dates"),
+        "holiday_hours_per_day": flt(get_hours_per_vacation_day(profile)),
         "vacation": _get_vacation_summary(profile_name, week_start_date),
     }

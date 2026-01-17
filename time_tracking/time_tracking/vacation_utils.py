@@ -32,10 +32,11 @@ def get_allow_negative_vacation_balance():
 
 
 def get_default_workdays_per_week():
-    return flt(
+    value = flt(
         frappe.db.get_single_value("Time Tracking Settings", "default_workdays_per_week")
         or 0
     )
+    return value if value > 0 else 5
 
 
 def get_expected_holiday_list_name(year):

@@ -1,7 +1,7 @@
 [
  {
   "charts": [],
-  "content": "[{\"id\":\"time_tracking_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h1\\\">Time Tracking</span><div class=\\\"text-muted\\\">Log hours, plan weeks, and track targets</div>\",\"col\":12}},{\"id\":\"time_tracking_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_summary\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Time Tracking Summary\",\"col\":12}},{\"id\":\"time_tracking_cards_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_quickstart_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Quick Start\",\"col\":4}},{\"id\":\"time_tracking_reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}},{\"id\":\"time_tracking_project_setup_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Project Setup\",\"col\":4}},{\"id\":\"time_tracking_team_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Team Setup\",\"col\":4}},{\"id\":\"time_tracking_settings_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}}]",
+  "content": "[{\"id\":\"time_tracking_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h1\\\">Time Tracking</span><div class=\\\"text-muted\\\">Log hours, plan weeks, and track targets</div>\",\"col\":12}},{\"id\":\"time_tracking_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_summary\",\"type\":\"custom_block\",\"data\":{\"custom_block_name\":\"Time Tracking Summary\",\"col\":12}},{\"id\":\"time_tracking_cards_spacer\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"time_tracking_quickstart_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Quick Start\",\"col\":4}},{\"id\":\"time_tracking_reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}},{\"id\":\"time_tracking_import_export_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Imports & Exports\",\"col\":4}},{\"id\":\"time_tracking_project_setup_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Project Setup\",\"col\":4}},{\"id\":\"time_tracking_team_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Team Setup\",\"col\":4}},{\"id\":\"time_tracking_settings_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}}]",
   "creation": "2026-01-09 00:00:00.000000",
   "custom_blocks": [
    {
@@ -59,14 +59,14 @@
     "type": "Link"
    },
    {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Reports",
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Reports",
     "link_count": 3,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Card Break"
+   },
    {
     "hidden": 0,
     "is_query_report": 1,
@@ -78,25 +78,104 @@
     "type": "Link"
    },
    {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Yearly Time Tracking Summary",
-   "link_count": 0,
-   "link_to": "Yearly Time Tracking Summary",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Project Budget Overview",
-   "link_count": 0,
-   "link_to": "Project Budget Overview",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
+    "hidden": 0,
+    "is_query_report": 1,
+    "label": "Yearly Time Tracking Summary",
+    "link_count": 0,
+    "link_to": "Yearly Time Tracking Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 1,
+    "label": "Project Budget Overview",
+    "link_count": 0,
+    "link_to": "Project Budget Overview",
+    "link_type": "Report",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Imports & Exports",
+    "link_count": 7,
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Card Break"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Tracking Profile",
+    "link_count": 0,
+    "link_to": "Time Tracking Profile",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Tracking Project",
+    "link_count": 0,
+    "link_to": "Time Tracking Project",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Tracking Rate",
+    "link_count": 0,
+    "link_to": "Time Tracking Rate",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Holiday List",
+    "link_count": 0,
+    "link_to": "Time Tracking Holiday List",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Booking",
+    "link_count": 0,
+    "link_to": "Time Booking",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Tracking Overtime Ledger",
+    "link_count": 0,
+    "link_to": "Time Tracking Overtime Ledger",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 0,
+    "label": "Time Tracking Vacation Ledger",
+    "link_count": 0,
+    "link_to": "Time Tracking Vacation Ledger",
+    "link_type": "DocType",
+    "onboard": 0,
+    "type": "Link"
+   },
    {
     "hidden": 0,
     "is_query_report": 0,

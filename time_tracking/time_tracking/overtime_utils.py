@@ -1,3 +1,5 @@
+import calendar
+
 import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, now_datetime, nowdate
@@ -18,6 +20,10 @@ ENTRY_TYPE_YEAR_END = "Year End Adjustment"
 PERIOD_WEEKLY = "Weekly"
 PERIOD_MONTHLY = "Monthly"
 
+YEAR_END_POLICY_CARRYOVER = "Carryover"
+YEAR_END_POLICY_CAP = "Cap"
+YEAR_END_POLICY_RESET = "Reset"
+
 
 def _get_settings():
     return frappe.get_cached_doc("Time Tracking Settings")
@@ -34,6 +40,13 @@ def _resolve_period_type(profile, settings):
             period = target_period
 
     return period
+
+
+def _get_year_end_policy(settings):
+    policy = (settings.overtime_year_end_policy or YEAR_END_POLICY_CAP).strip()
+    if policy not in (YEAR_END_POLICY_CARRYOVER, YEAR_END_POLICY_CAP, YEAR_END_POLICY_RESET):
+        return YEAR_END_POLICY_CAP
+    return policy
 
 
 def _get_week_range(date):
@@ -85,6 +98,104 @@ def _get_time_booking_totals(profile_name, start_date, end_date):
         totals_by_project[row.project] = minutes
         total_minutes += minutes
     return totals_by_project, total_minutes
+
+
+def _get_ledger_balance_until(user, end_date):
+    totals = frappe.get_all(
+        "Time Tracking Overtime Ledger",
+        filters={
+            "user": user,
+            "period_start": ["<=", end_date],
+        },
+        fields=["sum(delta_minutes) as total"],
+    )
+    if totals and totals[0].total is not None:
+        return flt(totals[0].total)
+    return 0
+
+
+def get_overtime_carryover_minutes(profile, year, settings=None):
+    if not profile or not year:
+        return 0
+
+    if not settings:
+        settings = _get_settings()
+
+    year = cint(year)
+    previous_year = year - 1
+    if previous_year <= 0:
+        return 0
+
+    allow_negative = cint(settings.allow_negative_overtime_balance)
+    end_date = getdate(f"{previous_year}-12-31")
+    balance_minutes = _get_ledger_balance_until(profile.user, end_date)
+    if not allow_negative:
+        balance_minutes = max(balance_minutes, 0)
+
+    policy = _get_year_end_policy(settings)
+    if policy == YEAR_END_POLICY_RESET:
+        return 0
+
+    if policy == YEAR_END_POLICY_CAP:
+        cap_hours = flt(settings.carryover_limit_hours)
+        cap_minutes = max(cap_hours * 60, 0)
+        if balance_minutes < 0 and allow_negative:
+            return balance_minutes
+        return min(balance_minutes, cap_minutes)
+
+    return balance_minutes
+
+
+def ensure_overtime_year_end_adjustment(profile, year, settings=None):
+    if not profile or not year:
+        return None
+
+    if not settings:
+        settings = _get_settings()
+
+    policy = _get_year_end_policy(settings)
+    year = cint(year)
+    start_date = getdate(f"{year}-01-01")
+    filters = {
+        "user": profile.user,
+        "entry_type": ENTRY_TYPE_YEAR_END,
+        "period_start": start_date,
+    }
+    existing = frappe.db.get_value("Time Tracking Overtime Ledger", filters, "name")
+
+    if policy == YEAR_END_POLICY_CARRYOVER:
+        if existing:
+            frappe.db.delete("Time Tracking Overtime Ledger", filters)
+        return None
+
+    current_balance = _get_ledger_balance_until(profile.user, getdate(f"{year - 1}-12-31"))
+    if not cint(settings.allow_negative_overtime_balance):
+        current_balance = max(current_balance, 0)
+
+    carryover_minutes = get_overtime_carryover_minutes(profile, year, settings=settings)
+    adjustment_minutes = int(round(carryover_minutes - current_balance))
+    if not adjustment_minutes:
+        if existing:
+            frappe.db.delete("Time Tracking Overtime Ledger", filters)
+        return None
+
+    values = {
+        "user": profile.user,
+        "time_tracking_profile": profile.name,
+        "entry_type": ENTRY_TYPE_YEAR_END,
+        "period_type": "",
+        "period_start": start_date,
+        "period_end": None,
+        "target_minutes": 0,
+        "actual_minutes": 0,
+        "holiday_minutes": 0,
+        "vacation_minutes": 0,
+        "sickness_minutes": 0,
+        "delta_minutes": adjustment_minutes,
+        "calculation_source": "year_end_policy",
+        "calculated_on": now_datetime(),
+    }
+    return _upsert_ledger_entry(values)
 
 
 def _get_booking_minutes_by_date(
@@ -270,6 +381,7 @@ def recalculate_overtime_for_date(user, date, source=None):
         **totals,
     }
     _upsert_ledger_entry(values)
+    ensure_overtime_year_end_adjustment(profile, getdate(date).year, settings=settings)
     update_overtime_balance(profile, settings=settings)
     return totals
 

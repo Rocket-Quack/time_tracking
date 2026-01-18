@@ -18,13 +18,16 @@ class TimeTrackingProfile(Document):
         self._validate_workdays_per_week()
         self._validate_hourly_rate()
         self._validate_vacation_days()
+        self._validate_vacation_opening_balance()
         self._validate_project_assignments()
 
     def after_insert(self):
         self._sync_opening_balance()
+        self._sync_vacation_opening_balance()
 
     def on_update(self):
         self._sync_opening_balance(previous=self.get_doc_before_save())
+        self._sync_vacation_opening_balance(previous=self.get_doc_before_save())
 
     def _validate_overtime_balance(self):
         if _is_admin():
@@ -121,6 +124,18 @@ class TimeTrackingProfile(Document):
         if previous and flt(previous.vacation_days_per_year) != flt(self.vacation_days_per_year):
             frappe.throw(_("Vacation days can only be updated by an admin."))
 
+    def _validate_vacation_opening_balance(self):
+        if _is_admin():
+            return
+
+        previous = self.get_doc_before_save()
+        if previous and flt(previous.vacation_opening_balance_days) != flt(
+            self.vacation_opening_balance_days
+        ):
+            frappe.throw(_("Opening vacation balance can only be updated by an admin."))
+        if not previous and flt(self.vacation_opening_balance_days):
+            frappe.throw(_("Opening vacation balance can only be set by an admin."))
+
     def _validate_hourly_rate(self):
         previous = self.get_doc_before_save()
         current = flt(self.hourly_rate)
@@ -177,6 +192,15 @@ class TimeTrackingProfile(Document):
         from time_tracking.time_tracking.overtime_utils import sync_opening_balance
 
         sync_opening_balance(self)
+
+    def _sync_vacation_opening_balance(self, previous=None):
+        if previous and flt(previous.vacation_opening_balance_days) == flt(
+            self.vacation_opening_balance_days
+        ):
+            return
+        from time_tracking.time_tracking.vacation_utils import sync_vacation_opening_balance
+
+        sync_vacation_opening_balance(self)
 
 
 def _is_admin(user=None):

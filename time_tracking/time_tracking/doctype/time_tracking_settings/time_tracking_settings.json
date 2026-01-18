@@ -32,6 +32,8 @@
   "vacation_booking_project",
   "default_workdays_per_week",
   "allow_negative_vacation_balance",
+  "vacation_year_end_policy",
+  "vacation_carryover_limit_days",
   "holiday_tab",
   "holiday_section",
   "enable_holiday_list",
@@ -218,6 +220,22 @@
    "fieldname": "allow_negative_vacation_balance",
    "fieldtype": "Check",
    "label": "Allow Negative Vacation Balance"
+  },
+  {
+   "default": "Cap",
+   "description": "How to handle unused vacation days at year end.",
+   "fieldname": "vacation_year_end_policy",
+   "fieldtype": "Select",
+   "label": "Vacation Year End Policy",
+   "options": "Carryover\nCap\nReset",
+   "reqd": 1
+  },
+  {
+   "description": "Maximum vacation days to carry into the next year when policy is set to Cap.",
+   "fieldname": "vacation_carryover_limit_days",
+   "fieldtype": "Float",
+   "label": "Vacation Carryover Limit (Days)",
+   "depends_on": "eval:doc.vacation_year_end_policy === 'Cap'"
   },
   {
    "fieldname": "holiday_tab",

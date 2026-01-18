@@ -22,6 +22,7 @@
   "hourly_rate",
   "balances_section",
   "vacation_days_per_year",
+  "vacation_opening_balance_days",
   "overtime_opening_balance_hours",
   "overtime_balance_hours"
  ],
@@ -129,6 +130,14 @@
    "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
   },
   {
+   "fieldname": "vacation_opening_balance_days",
+   "fieldtype": "Float",
+   "label": "Opening Vacation Balance (Days)",
+   "description": "Initial vacation balance when starting time tracking.",
+   "permlevel": 1,
+   "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
+  },
+  {
    "fieldname": "overtime_opening_balance_hours",
    "fieldtype": "Float",
    "label": "Opening Overtime Balance (Hours)",
@@ -194,7 +203,8 @@
   {
    "read": 1,
    "role": "Time Tracking Employee",
-   "write": 1
+   "write": 1,
+   "report": 1
   },
   {
    "read": 1,

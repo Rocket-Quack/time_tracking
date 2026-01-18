@@ -177,6 +177,7 @@ doc_events = {
 				".time_tracking_project.handle_time_booking_insert"
 			),
 			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+			"time_tracking.time_tracking.vacation_utils.handle_vacation_booking_change",
 		],
 		"on_update": [
 			(
@@ -184,6 +185,7 @@ doc_events = {
 				".time_tracking_project.handle_time_booking_update"
 			),
 			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+			"time_tracking.time_tracking.vacation_utils.handle_vacation_booking_change",
 		],
 		"on_trash": [
 			(
@@ -191,6 +193,7 @@ doc_events = {
 				".time_tracking_project.handle_time_booking_trash"
 			),
 			"time_tracking.time_tracking.overtime_utils.handle_time_booking_change",
+			"time_tracking.time_tracking.vacation_utils.handle_vacation_booking_change",
 		],
 	},
 }

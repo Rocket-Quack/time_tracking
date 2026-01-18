@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:VAC-{user}-{entry_type}-{period_start}",
+ "creation": "2026-01-20 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "time_tracking_profile",
+  "entry_type",
+  "period_start",
+  "delta_days",
+  "calculation_source",
+  "calculated_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "time_tracking_profile",
+   "fieldtype": "Link",
+   "label": "Time Tracking Profile",
+   "options": "Time Tracking Profile",
+   "read_only": 1
+  },
+  {
+   "default": "Year End Carryover",
+   "fieldname": "entry_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Entry Type",
+   "options": "Opening Balance\nYear End Carryover",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "delta_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Delta Days",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculation_source",
+   "fieldtype": "Data",
+   "label": "Calculation Source",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculated_on",
+   "fieldtype": "Datetime",
+   "label": "Calculated On",
+   "read_only": 1
+  }
+ ],
+ "icon": "fa fa-history",
+ "idx": 1,
+ "links": [],
+ "modified": "2026-01-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "Time Tracking Vacation Ledger",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Time Tracking Manager"
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "user,period_start,entry_type",
+ "show_name_in_global_search": 1,
+ "sort_field": "period_start",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "period_start",
+ "track_changes": 1
+}

@@ -405,3 +405,74 @@ def handle_vacation_booking_change(doc, method=None):
         _sync_vacation_year_end_carryover(
             profile, year, carryover_days, source="time_booking"
         )
+
+
+def _get_profiles_for_recalc(profile_name=None):
+    if profile_name:
+        return [frappe.get_doc("Time Tracking Profile", profile_name)]
+    profile_names = frappe.get_all("Time Tracking Profile", pluck="name")
+    return [frappe.get_doc("Time Tracking Profile", name) for name in profile_names]
+
+
+def _is_admin(user=None):
+    if not user:
+        user = frappe.session.user
+    roles = frappe.get_roles(user)
+    return "System Manager" in roles or "Time Tracking Admin" in roles
+
+
+@frappe.whitelist()
+def recalculate_vacation_ledger(profile_name=None, start_year=None, end_year=None):
+    if not _is_admin():
+        frappe.throw(_("Only administrators can recalculate vacation balances."))
+
+    start_year = cint(start_year) if start_year else None
+    end_year = cint(end_year) if end_year else None
+    current_year = getdate(nowdate()).year
+
+    if not start_year:
+        start_year = current_year
+    if not end_year:
+        end_year = start_year
+    if end_year < start_year:
+        start_year, end_year = end_year, start_year
+
+    profiles = _get_profiles_for_recalc(profile_name)
+    total_updated = 0
+    total_deleted = 0
+
+    for profile in profiles:
+        sync_vacation_opening_balance(profile)
+        for year in range(start_year, end_year + 1):
+            carryover_days = _compute_vacation_carryover_days(profile, year)
+            before = frappe.db.get_value(
+                "Time Tracking Vacation Ledger",
+                {
+                    "user": profile.user,
+                    "entry_type": ENTRY_TYPE_YEAR_END,
+                    "period_start": getdate(f"{year}-01-01"),
+                },
+                "name",
+            )
+            _sync_vacation_year_end_carryover(
+                profile, year, carryover_days, source="recalc_job"
+            )
+            after = frappe.db.get_value(
+                "Time Tracking Vacation Ledger",
+                {
+                    "user": profile.user,
+                    "entry_type": ENTRY_TYPE_YEAR_END,
+                    "period_start": getdate(f"{year}-01-01"),
+                },
+                "name",
+            )
+            if before and not after:
+                total_deleted += 1
+            elif after:
+                total_updated += 1
+
+    return {
+        "profiles_processed": len(profiles),
+        "carryover_entries_updated": total_updated,
+        "carryover_entries_deleted": total_deleted,
+    }

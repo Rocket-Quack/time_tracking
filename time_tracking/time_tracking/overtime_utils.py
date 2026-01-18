@@ -333,6 +333,34 @@ def _get_profile(user):
         return None
     return frappe.get_doc("Time Tracking Profile", profile_name)
 
+def _get_profiles_for_recalc(profile_name=None):
+    if profile_name:
+        return [frappe.get_doc("Time Tracking Profile", profile_name)]
+    profile_names = frappe.get_all("Time Tracking Profile", pluck="name")
+    return [frappe.get_doc("Time Tracking Profile", name) for name in profile_names]
+
+
+def _get_booking_date_range(profile_name):
+    if not profile_name:
+        return None, None
+
+    rows = frappe.get_all(
+        "Time Booking",
+        filters={"time_tracking_profile": profile_name},
+        fields=["min(date) as start_date", "max(date) as end_date"],
+    )
+    if not rows or not rows[0].start_date:
+        return None, None
+
+    return getdate(rows[0].start_date), getdate(rows[0].end_date)
+
+
+def _is_admin(user=None):
+    if not user:
+        user = frappe.session.user
+    roles = frappe.get_roles(user)
+    return "System Manager" in roles or "Time Tracking Admin" in roles
+
 
 def update_overtime_balance(profile, settings=None):
     if not profile:
@@ -537,3 +565,106 @@ def handle_time_booking_change(doc, method=None):
     if not user:
         return
     recalculate_overtime_for_date(user, doc.date, source="time_booking")
+
+
+def _recalculate_overtime_periods(profile, start_date, end_date, settings):
+    if not start_date or not end_date:
+        return 0, 0
+
+    period_type = _resolve_period_type(profile, settings)
+    current = getdate(start_date)
+    updated = 0
+    deleted = 0
+
+    while current <= end_date:
+        period_start, period_end = _get_period_range(period_type, current)
+        totals_by_project, total_minutes = _get_time_booking_totals(
+            profile.name, period_start, period_end
+        )
+        totals = calculate_period_overtime(profile, period_start, period_end, period_type, settings)
+
+        filters = {
+            "user": profile.user,
+            "entry_type": ENTRY_TYPE_PERIOD,
+            "period_type": period_type,
+            "period_start": period_start,
+        }
+        if total_minutes or totals.get("holiday_minutes"):
+            values = {
+                "user": profile.user,
+                "time_tracking_profile": profile.name,
+                "entry_type": ENTRY_TYPE_PERIOD,
+                "period_type": period_type,
+                "period_start": period_start,
+                "period_end": period_end,
+                "calculation_source": "recalc_job",
+                "calculated_on": now_datetime(),
+                **totals,
+            }
+            _upsert_ledger_entry(values)
+            updated += 1
+        else:
+            if frappe.db.get_value("Time Tracking Overtime Ledger", filters, "name"):
+                frappe.db.delete("Time Tracking Overtime Ledger", filters)
+                deleted += 1
+
+        current = add_days(period_end, 1)
+
+    return updated, deleted
+
+
+@frappe.whitelist()
+def recalculate_overtime_ledger(profile_name=None, start_date=None, end_date=None):
+    if not _is_admin():
+        frappe.throw(_("Only administrators can recalculate overtime balances."))
+
+    settings = _get_settings()
+    profiles = _get_profiles_for_recalc(profile_name)
+    total_updated = 0
+    total_deleted = 0
+
+    for profile in profiles:
+        sync_opening_balance(profile)
+        booking_start, booking_end = _get_booking_date_range(profile.name)
+
+        range_start = getdate(start_date) if start_date else booking_start
+        range_end = getdate(end_date) if end_date else booking_end
+        updated, deleted = _recalculate_overtime_periods(
+            profile, range_start, range_end, settings
+        )
+        total_updated += updated
+        total_deleted += deleted
+
+        year_start = (range_start or booking_start or getdate(profile.creation or nowdate())).year
+        year_end = (range_end or booking_end or getdate(profile.creation or nowdate())).year
+        for year in range(year_start, year_end + 2):
+            ensure_overtime_year_end_adjustment(profile, year, settings=settings)
+
+        update_overtime_balance(profile, settings=settings)
+
+    return {
+        "profiles_processed": len(profiles),
+        "period_entries_updated": total_updated,
+        "period_entries_deleted": total_deleted,
+    }
+
+
+@frappe.whitelist()
+def recalculate_time_tracking_ledgers(
+    profile_name=None, start_date=None, end_date=None, start_year=None, end_year=None
+):
+    if not _is_admin():
+        frappe.throw(_("Only administrators can recalculate ledgers."))
+
+    from time_tracking.time_tracking.vacation_utils import recalculate_vacation_ledger
+
+    overtime_result = recalculate_overtime_ledger(
+        profile_name=profile_name, start_date=start_date, end_date=end_date
+    )
+    vacation_result = recalculate_vacation_ledger(
+        profile_name=profile_name, start_year=start_year, end_year=end_year
+    )
+    return {
+        "overtime": overtime_result,
+        "vacation": vacation_result,
+    }

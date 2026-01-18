@@ -101,7 +101,7 @@
     "hidden": 0,
     "is_query_report": 0,
     "label": "Imports & Exports",
-    "link_count": 7,
+    "link_count": 1,
     "link_type": "DocType",
     "onboard": 0,
     "type": "Card Break"
@@ -109,69 +109,9 @@
    {
     "hidden": 0,
     "is_query_report": 0,
-    "label": "Time Tracking Profile",
+    "label": "Data Import",
     "link_count": 0,
-    "link_to": "Time Tracking Profile",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Tracking Project",
-    "link_count": 0,
-    "link_to": "Time Tracking Project",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Tracking Rate",
-    "link_count": 0,
-    "link_to": "Time Tracking Rate",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Holiday List",
-    "link_count": 0,
-    "link_to": "Time Tracking Holiday List",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Booking",
-    "link_count": 0,
-    "link_to": "Time Booking",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Tracking Overtime Ledger",
-    "link_count": 0,
-    "link_to": "Time Tracking Overtime Ledger",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Tracking Vacation Ledger",
-    "link_count": 0,
-    "link_to": "Time Tracking Vacation Ledger",
+    "link_to": "Data Import",
     "link_type": "DocType",
     "onboard": 0,
     "type": "Link"

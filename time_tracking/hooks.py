@@ -203,7 +203,7 @@ doc_events = {
 
 scheduler_events = {
 	"daily": [
-		"time_tracking.time_tracking.notifications.send_monthly_booking_reminders",
+		"time_tracking.time_tracking.notifications.send_booking_reminders",
 	],
 }
 

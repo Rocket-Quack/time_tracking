@@ -6,20 +6,25 @@
  "field_order": [
   "booking_tab",
   "booking_rules_section",
+  "booking_help_html",
   "weekly_booking_day_label_format",
   "time_booking_increment_minutes",
   "team_tab",
   "team_section",
+  "team_help_html",
   "require_project_assignment",
   "billing_tab",
   "billing_rates_section",
+  "billing_help_html",
   "rate_basis",
   "allow_profile_rate_override",
   "targets_tab",
   "targets_section",
+  "targets_help_html",
   "track_target_adjustments",
   "overtime_tab",
   "overtime_section",
+  "overtime_help_html",
   "overtime_calculation_period",
   "allow_target_period_override",
   "include_vacation_in_overtime",
@@ -29,6 +34,7 @@
   "carryover_limit_hours",
   "vacation_tab",
   "vacation_section",
+  "vacation_help_html",
   "vacation_booking_project",
   "default_workdays_per_week",
   "allow_negative_vacation_balance",
@@ -36,14 +42,21 @@
   "vacation_carryover_limit_days",
   "holiday_tab",
   "holiday_section",
+  "holiday_help_html",
   "enable_holiday_list",
   "sickness_tab",
   "sickness_section",
+  "sickness_help_html",
   "sickness_booking_project",
   "notifications_tab",
   "notifications_section",
+  "notifications_help_html",
   "enable_monthly_booking_reminder",
-  "monthly_booking_reminder_day"
+  "booking_reminder_trigger",
+  "monthly_booking_reminder_day",
+  "booking_reminder_weekday",
+  "booking_reminder_inactivity_days",
+  "booking_reminder_missing_days_threshold"
  ],
  "fields": [
   {
@@ -283,24 +296,104 @@
   {
    "fieldname": "notifications_section",
    "fieldtype": "Section Break",
-   "label": "Monthly Reminders"
+   "label": "Booking Reminders"
   },
   {
    "default": "0",
-   "description": "Send a reminder when time bookings are still missing in the current month.",
+   "description": "Send reminders when time bookings are missing.",
    "fieldname": "enable_monthly_booking_reminder",
    "fieldtype": "Check",
-   "label": "Enable Monthly Booking Reminder"
+   "label": "Enable Booking Reminders"
   },
   {
    "default": "25",
    "description": "Day of month to send the reminder (uses the last day if the month is shorter).",
    "fieldname": "monthly_booking_reminder_day",
    "fieldtype": "Int",
-   "label": "Monthly Booking Reminder Day",
+   "label": "Monthly Reminder Day",
    "min_value": "1",
    "max_value": "31",
-   "depends_on": "eval:doc.enable_monthly_booking_reminder"
+   "depends_on": "eval:doc.enable_monthly_booking_reminder && doc.booking_reminder_trigger === 'Monthly'"
+  },
+  {
+   "fieldname": "booking_reminder_trigger",
+   "fieldtype": "Select",
+   "label": "Reminder Trigger",
+   "options": "Month End\nMonthly\nWeekly\nInactivity\nMissing Days Threshold",
+   "default": "Month End",
+   "depends_on": "eval:doc.enable_monthly_booking_reminder",
+   "description": "Choose when reminder emails should be sent."
+  },
+  {
+   "fieldname": "booking_reminder_weekday",
+   "fieldtype": "Select",
+   "label": "Weekly Reminder Day",
+   "options": "Monday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+   "default": "Friday",
+   "depends_on": "eval:doc.enable_monthly_booking_reminder && doc.booking_reminder_trigger === 'Weekly'"
+  },
+  {
+   "fieldname": "booking_reminder_inactivity_days",
+   "fieldtype": "Int",
+   "label": "Inactivity Days Threshold",
+   "default": "5",
+   "min_value": "1",
+   "depends_on": "eval:doc.enable_monthly_booking_reminder && doc.booking_reminder_trigger === 'Inactivity'",
+   "description": "Send a reminder when no bookings have been made for this many days."
+  },
+  {
+   "fieldname": "booking_reminder_missing_days_threshold",
+   "fieldtype": "Int",
+   "label": "Missing Days Threshold",
+   "default": "3",
+   "min_value": "1",
+   "depends_on": "eval:doc.enable_monthly_booking_reminder && doc.booking_reminder_trigger === 'Missing Days Threshold'",
+   "description": "Send a reminder when the number of missing booking days reaches this value."
+  },
+  {
+   "fieldname": "booking_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "team_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "billing_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "targets_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "overtime_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "vacation_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "holiday_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "sickness_help_html",
+   "fieldtype": "HTML",
+   "options": ""
+  },
+  {
+   "fieldname": "notifications_help_html",
+   "fieldtype": "HTML",
+   "options": ""
   }
  ],
  "icon": "fa fa-cog",

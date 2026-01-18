@@ -39,7 +39,11 @@
   "enable_holiday_list",
   "sickness_tab",
   "sickness_section",
-  "sickness_booking_project"
+  "sickness_booking_project",
+  "notifications_tab",
+  "notifications_section",
+  "enable_monthly_booking_reminder",
+  "monthly_booking_reminder_day"
  ],
  "fields": [
   {
@@ -270,6 +274,33 @@
    "fieldtype": "Link",
    "label": "Sickness Booking Project",
    "options": "Time Tracking Project"
+  },
+  {
+   "fieldname": "notifications_tab",
+   "fieldtype": "Tab Break",
+   "label": "Notifications"
+  },
+  {
+   "fieldname": "notifications_section",
+   "fieldtype": "Section Break",
+   "label": "Monthly Reminders"
+  },
+  {
+   "default": "0",
+   "description": "Send a reminder when time bookings are still missing in the current month.",
+   "fieldname": "enable_monthly_booking_reminder",
+   "fieldtype": "Check",
+   "label": "Enable Monthly Booking Reminder"
+  },
+  {
+   "default": "25",
+   "description": "Day of month to send the reminder (uses the last day if the month is shorter).",
+   "fieldname": "monthly_booking_reminder_day",
+   "fieldtype": "Int",
+   "label": "Monthly Booking Reminder Day",
+   "min_value": "1",
+   "max_value": "31",
+   "depends_on": "eval:doc.enable_monthly_booking_reminder"
   }
  ],
  "icon": "fa fa-cog",

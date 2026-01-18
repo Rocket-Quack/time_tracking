@@ -69,10 +69,20 @@
    },
    {
     "hidden": 0,
-    "is_query_report": 0,
+    "is_query_report": 1,
     "label": "Monthly Time Tracking Summary",
     "link_count": 0,
     "link_to": "Monthly Time Tracking Summary",
+    "link_type": "Report",
+    "onboard": 0,
+    "type": "Link"
+   },
+   {
+    "hidden": 0,
+    "is_query_report": 1,
+    "label": "Yearly Time Tracking Summary",
+    "link_count": 0,
+    "link_to": "Yearly Time Tracking Summary",
     "link_type": "Report",
     "onboard": 0,
     "type": "Link"

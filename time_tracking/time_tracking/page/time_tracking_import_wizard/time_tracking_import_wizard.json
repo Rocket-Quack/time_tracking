@@ -1,0 +1,22 @@
+{
+ "creation": "2026-01-09 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "fa fa-upload",
+ "modified": "2026-01-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "time-tracking-import-wizard",
+ "owner": "Administrator",
+ "page_name": "time-tracking-import-wizard",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Time Tracking Admin"
+  }
+ ],
+ "standard": "Yes",
+ "title": "Time Tracking Import Wizard"
+}

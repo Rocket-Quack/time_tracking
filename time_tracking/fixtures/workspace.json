@@ -98,24 +98,34 @@
     "type": "Link"
    },
    {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Imports & Exports",
-    "link_count": 1,
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Card Break"
-   },
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Imports & Exports",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
    {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Data Import",
-    "link_count": 0,
-    "link_to": "Data Import",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Data Import",
+   "link_count": 0,
+   "link_to": "Data Import",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Time Tracking Import Wizard",
+   "link_count": 0,
+   "link_to": "time-tracking-import-wizard",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
    {
     "hidden": 0,
     "is_query_report": 0,

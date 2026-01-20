@@ -71,7 +71,7 @@ def fetch_open_holidays(country_code, year):
         frappe.throw(_("Year is required."))
 
     country_code = (country_code or "").upper()
-    if country_code not in {"DE", "AT"}:
+    if not country_code:
         frappe.throw(_("Country is required."))
 
     valid_from = f"{year}-01-01"

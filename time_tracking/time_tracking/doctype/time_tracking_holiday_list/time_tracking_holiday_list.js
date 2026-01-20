@@ -87,7 +87,6 @@ function open_fetch_dialog(frm) {
                 frappe.msgprint(__("Year is required."));
                 return;
             }
-
             frappe.call({
                 method:
                     "time_tracking.time_tracking.doctype.time_tracking_holiday_list.time_tracking_holiday_list.fetch_open_holidays",
@@ -100,7 +99,12 @@ function open_fetch_dialog(frm) {
                 callback: (response) => {
                     const holidays = response.message || [];
                     if (!holidays.length) {
-                        frappe.msgprint(__("No holidays found for the selected year."));
+                        frappe.msgprint(
+                            __("No holidays found for {0} in {1}.").format(
+                                country_code,
+                                selected_year
+                            )
+                        );
                         return;
                     }
 

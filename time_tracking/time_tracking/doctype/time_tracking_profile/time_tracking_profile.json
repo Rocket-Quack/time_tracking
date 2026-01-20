@@ -20,6 +20,7 @@
   "target_adjustments",
   "billing_section",
   "hourly_rate",
+  "pay_rate",
   "balances_section",
   "vacation_days_per_year",
   "vacation_opening_balance_days",
@@ -113,7 +114,16 @@
   {
    "fieldname": "hourly_rate",
    "fieldtype": "Float",
-   "label": "Hourly Rate",
+   "label": "Employee Bill Rate",
+   "description": "Used when Billing Rate Basis is Employee.",
+   "permlevel": 2,
+   "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
+  },
+  {
+   "fieldname": "pay_rate",
+   "fieldtype": "Float",
+   "label": "Pay Rate",
+   "description": "Internal cost per hour.",
    "permlevel": 2,
    "read_only_depends_on": "eval:!frappe.user.has_role('System Manager') && !frappe.user.has_role('Time Tracking Admin')"
   },

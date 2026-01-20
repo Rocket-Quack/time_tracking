@@ -8,8 +8,12 @@
  "doctype": "DocType",
  "document_type": "Document",
  "engine": "InnoDB",
- "field_order": [
-  "project_name",
+  "field_order": [
+   "project_name",
+   "project_description",
+  "bill_rate",
+  "pay_rate_source",
+  "pay_rate",
   "is_internal",
   "parent_time_tracking_project",
   "is_group",
@@ -22,6 +26,9 @@
   "total_budget_amount",
   "actual_hours",
   "actual_amount",
+  "actual_pay_amount",
+  "profit_amount",
+  "profit_percent",
   "budget_status",
   "budget_hours_percent",
   "budget_amount_percent",
@@ -33,17 +40,46 @@
   {
    "fieldname": "project_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Project Name",
    "reqd": 1,
-   "unique": 1
+   "unique": 1,
+   "description": "Project identifier used for links and hierarchy."
+  },
+  {
+   "fieldname": "project_description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "description": "Optional internal description of the project."
+  },
+  {
+   "fieldname": "bill_rate",
+   "fieldtype": "Currency",
+   "label": "Bill Rate",
+   "options": "currency",
+   "description": "Billing amount per hour when Billing Rate Source is Project."
+  },
+  {
+   "default": "Project",
+   "fieldname": "pay_rate_source",
+   "fieldtype": "Select",
+   "label": "Pay Rate Source",
+   "options": "Project\nEmployee",
+   "description": "Use project pay rate or employee pay rate for costs."
+  },
+  {
+   "fieldname": "pay_rate",
+   "fieldtype": "Currency",
+   "label": "Pay Rate",
+   "options": "currency",
+   "description": "Internal cost per hour when Pay Rate Source is Project."
   },
   {
    "default": "0",
    "fieldname": "is_internal",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Internal Project"
+   "label": "Internal Project",
+   "description": "Marks internal projects for reporting filters."
   },
   {
    "fieldname": "parent_time_tracking_project",
@@ -51,7 +87,8 @@
    "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Parent Project",
-   "options": "Time Tracking Project"
+   "options": "Time Tracking Project",
+   "description": "Parent project for hierarchy and rollups."
   },
   {
    "default": "0",
@@ -80,14 +117,16 @@
    "fieldname": "budget_hours",
    "fieldtype": "Float",
    "label": "Budget Hours",
-   "depends_on": "eval:!doc.is_group"
+   "depends_on": "eval:!doc.is_group",
+   "description": "Planned billable hours for this project."
   },
   {
    "fieldname": "budget_amount",
    "fieldtype": "Currency",
    "label": "Budget Amount",
    "options": "currency",
-   "depends_on": "eval:!doc.is_group"
+   "depends_on": "eval:!doc.is_group",
+   "description": "Planned billable amount for this project."
   },
   {
    "fieldname": "budget_summary_column",
@@ -97,27 +136,54 @@
    "fieldname": "total_budget_hours",
    "fieldtype": "Float",
    "label": "Total Budget Hours",
-   "read_only": 1
+   "read_only": 1,
+   "description": "Sum of child budget hours for group projects."
   },
   {
    "fieldname": "total_budget_amount",
    "fieldtype": "Currency",
    "label": "Total Budget Amount",
    "options": "currency",
-   "read_only": 1
+   "read_only": 1,
+   "description": "Sum of child budget amounts for group projects."
   },
   {
    "fieldname": "actual_hours",
    "fieldtype": "Float",
    "label": "Actual Hours",
-   "read_only": 1
+   "read_only": 1,
+   "description": "Total booked hours."
   },
   {
    "fieldname": "actual_amount",
    "fieldtype": "Currency",
    "label": "Actual Amount",
    "options": "currency",
-   "read_only": 1
+   "read_only": 1,
+   "description": "Total billed amount based on billing rates."
+  },
+  {
+   "fieldname": "actual_pay_amount",
+   "fieldtype": "Currency",
+   "label": "Actual Pay Amount",
+   "options": "currency",
+   "read_only": 1,
+   "description": "Total cost based on pay rates."
+  },
+  {
+   "fieldname": "profit_amount",
+   "fieldtype": "Currency",
+   "label": "Profit Amount",
+   "options": "currency",
+   "read_only": 1,
+   "description": "Actual amount minus actual pay amount."
+  },
+  {
+   "fieldname": "profit_percent",
+   "fieldtype": "Percent",
+   "label": "Profit Margin (%)",
+   "read_only": 1,
+   "description": "Profit as a percentage of actual amount."
   },
   {
    "fieldname": "budget_status",
@@ -125,21 +191,24 @@
    "label": "Budget Status",
    "options": "Under Budget\nOn Budget\nOver Budget",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Status derived from budget usage."
   },
   {
    "fieldname": "budget_hours_percent",
    "fieldtype": "Percent",
    "label": "Budget Hours Used (%)",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Actual hours as percentage of budget hours."
   },
   {
    "fieldname": "budget_amount_percent",
    "fieldtype": "Percent",
    "label": "Budget Amount Used (%)",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Actual amount as percentage of budget amount."
   },
   {
    "fieldname": "lft",
@@ -228,12 +297,11 @@
  ],
  "quick_entry": 1,
  "row_format": "Dynamic",
- "search_fields": "parent_time_tracking_project",
+ "search_fields": "project_name,parent_time_tracking_project",
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "project_name",
  "track_changes": 1,
  "default_view": "Tree"
 }

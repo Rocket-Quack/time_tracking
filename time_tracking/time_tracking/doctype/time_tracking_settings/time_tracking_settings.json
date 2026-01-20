@@ -17,7 +17,6 @@
   "billing_rates_section",
   "billing_help_html",
   "rate_basis",
-  "allow_profile_rate_override",
   "targets_tab",
   "targets_section",
   "targets_help_html",
@@ -112,19 +111,13 @@
    "label": "Billing Rates"
   },
   {
-   "default": "Role",
+   "default": "Project",
+   "description": "Defines which rates are used to calculate billing amounts.",
    "fieldname": "rate_basis",
    "fieldtype": "Select",
-   "label": "Rate Basis",
-   "options": "Role\nUser",
+   "label": "Billing Rate Source",
+   "options": "Project\nEmployee",
    "reqd": 1
-  },
-  {
-   "default": "0",
-   "description": "Allow overriding assigned role/user rates on Time Tracking Profiles.",
-   "fieldname": "allow_profile_rate_override",
-   "fieldtype": "Check",
-   "label": "Allow Profile Rate Override"
   },
   {
    "fieldname": "targets_tab",

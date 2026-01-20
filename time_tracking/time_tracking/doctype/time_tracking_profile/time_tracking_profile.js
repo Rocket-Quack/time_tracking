@@ -9,18 +9,7 @@ function applyRateSettings(frm) {
         return;
     }
 
-    if (!isTargetAdmin()) {
-        frm.set_df_property("hourly_rate", "read_only", true);
-        return;
-    }
-
-    frappe.db
-        .get_single_value("Time Tracking Settings", "allow_profile_rate_override")
-        .then((r) => {
-            const allowOverride = Number(r) === 1;
-            const readOnly = !(allowOverride && isTargetAdmin());
-            frm.set_df_property("hourly_rate", "read_only", readOnly);
-    });
+    frm.set_df_property("hourly_rate", "read_only", !isTargetAdmin());
 }
 
 const DEFAULT_WEEKS_PER_MONTH = 52 / 12;

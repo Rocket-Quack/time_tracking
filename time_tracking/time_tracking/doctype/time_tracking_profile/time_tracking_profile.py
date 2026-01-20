@@ -17,6 +17,7 @@ class TimeTrackingProfile(Document):
         self._set_default_workdays_per_week()
         self._validate_workdays_per_week()
         self._validate_hourly_rate()
+        self._validate_pay_rate()
         self._validate_vacation_days()
         self._validate_vacation_opening_balance()
         self._validate_project_assignments()
@@ -143,22 +144,26 @@ class TimeTrackingProfile(Document):
         if current < 0:
             frappe.throw(_("Hourly rate cannot be negative."))
 
-        allow_override = cint(
-            frappe.db.get_single_value(
-                "Time Tracking Settings", "allow_profile_rate_override"
-            )
-            or 0
-        )
-        if not allow_override:
-            if current and (not previous or flt(previous.hourly_rate) != current):
-                frappe.throw(_("Profile rate overrides are disabled in settings."))
-            if not previous:
-                self.hourly_rate = 0
-            return
-
         if not _is_admin():
             if previous and flt(previous.hourly_rate) != current:
                 frappe.throw(_("Hourly rate can only be updated by an admin."))
+            if not previous and current:
+                frappe.throw(_("Hourly rate can only be set by an admin."))
+
+    def _validate_pay_rate(self):
+        previous = self.get_doc_before_save()
+        current = flt(self.pay_rate)
+
+        if current < 0:
+            frappe.throw(_("Pay rate cannot be negative."))
+
+        if _is_admin():
+            return
+
+        if previous and flt(previous.pay_rate) != current:
+            frappe.throw(_("Pay rate can only be updated by an admin."))
+        if not previous and current:
+            frappe.throw(_("Pay rate can only be set by an admin."))
 
     def _validate_project_assignments(self):
         if not _require_project_assignment_setting() or _is_admin():

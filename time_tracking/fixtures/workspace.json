@@ -189,21 +189,11 @@
     "label": "Holiday List",
     "link_count": 0,
     "link_to": "Time Tracking Holiday List",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
-   },
-   {
-    "hidden": 0,
-    "is_query_report": 0,
-    "label": "Time Tracking Rate",
-    "link_count": 0,
-    "link_to": "Time Tracking Rate",
-    "link_type": "DocType",
-    "onboard": 0,
-    "type": "Link"
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
    }
-  ],
+ ],
   "modified": "2026-01-09 00:00:00.000000",
   "modified_by": "Administrator",
   "module": "Time Tracking",

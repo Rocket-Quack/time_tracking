@@ -1,10 +1,13 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt
+from frappe.utils import flt
 
-RATE_TYPE_ROLE = "Role"
-RATE_TYPE_USER = "User"
+RATE_BASIS_PROJECT = "Project"
+RATE_BASIS_EMPLOYEE = "Employee"
+
+PAY_RATE_SOURCE_PROJECT = "Project"
+PAY_RATE_SOURCE_EMPLOYEE = "Employee"
 
 BUDGET_STATUS_UNDER = "Under Budget"
 BUDGET_STATUS_ON = "On Budget"
@@ -97,10 +100,11 @@ def _calculate_project_metrics(doc):
         total_budget_amount = totals.get("total_budget_amount")
         actual_hours = totals.get("actual_hours")
         actual_amount = totals.get("actual_amount")
+        actual_pay_amount = totals.get("actual_pay_amount")
     else:
         total_budget_hours = flt(doc.budget_hours)
         total_budget_amount = flt(doc.budget_amount)
-        actual_hours, actual_amount = _get_leaf_actuals(doc.name)
+        actual_hours, actual_amount, actual_pay_amount = _get_leaf_actuals(doc)
 
     budget_hours_percent = _calculate_percent(actual_hours, total_budget_hours)
     budget_amount_percent = _calculate_percent(actual_amount, total_budget_amount)
@@ -109,12 +113,17 @@ def _calculate_project_metrics(doc):
         total_budget_hours,
         total_budget_amount,
     )
+    profit_amount = flt(actual_amount) - flt(actual_pay_amount)
+    profit_percent = _calculate_percent(profit_amount, actual_amount)
 
     return {
         "total_budget_hours": total_budget_hours,
         "total_budget_amount": total_budget_amount,
         "actual_hours": actual_hours,
         "actual_amount": actual_amount,
+        "actual_pay_amount": actual_pay_amount,
+        "profit_amount": profit_amount,
+        "profit_percent": profit_percent,
         "budget_hours_percent": budget_hours_percent,
         "budget_amount_percent": budget_amount_percent,
         "budget_status": budget_status,
@@ -127,6 +136,7 @@ def _get_group_totals(project_name):
         "total_budget_amount": 0,
         "actual_hours": 0,
         "actual_amount": 0,
+        "actual_pay_amount": 0,
     }
 
     children = frappe.get_all(
@@ -137,6 +147,7 @@ def _get_group_totals(project_name):
             "total_budget_amount",
             "actual_hours",
             "actual_amount",
+            "actual_pay_amount",
         ],
     )
     for child in children:
@@ -144,83 +155,88 @@ def _get_group_totals(project_name):
         totals["total_budget_amount"] += flt(child.total_budget_amount)
         totals["actual_hours"] += flt(child.actual_hours)
         totals["actual_amount"] += flt(child.actual_amount)
+        totals["actual_pay_amount"] += flt(child.actual_pay_amount)
 
     return totals
 
 
-def _get_leaf_actuals(project_name):
+def _get_leaf_actuals(project):
     rows = frappe.get_all(
         "Time Booking",
-        filters={"project": project_name},
+        filters={"project": project.name},
         fields=["time_tracking_profile", "sum(duration_minutes) as total_minutes"],
         group_by="time_tracking_profile",
     )
 
-    settings = _get_rate_settings()
-    rate_cache = {}
+    settings = _get_billing_rate_settings()
+    billing_rate_cache = {}
+    pay_rate_cache = {}
     total_minutes = 0
-    total_amount = 0
+    total_bill_amount = 0
+    total_pay_amount = 0
 
     for row in rows:
         minutes = flt(row.total_minutes)
         total_minutes += minutes
-        hourly_rate = _get_hourly_rate(row.time_tracking_profile, settings, rate_cache)
-        total_amount += (minutes / 60) * hourly_rate
+        bill_rate = _get_billing_rate(
+            project, row.time_tracking_profile, settings, billing_rate_cache
+        )
+        pay_rate = _get_pay_rate(project, row.time_tracking_profile, pay_rate_cache)
+        total_bill_amount += (minutes / 60) * bill_rate
+        total_pay_amount += (minutes / 60) * pay_rate
 
-    return total_minutes / 60, total_amount
+    return total_minutes / 60, total_bill_amount, total_pay_amount
 
 
-def _get_rate_settings():
+def _get_billing_rate_settings():
+    rate_basis = (
+        frappe.db.get_single_value("Time Tracking Settings", "rate_basis")
+        or RATE_BASIS_PROJECT
+    )
+    if rate_basis == "User":
+        rate_basis = RATE_BASIS_EMPLOYEE
+    elif rate_basis == "Role":
+        rate_basis = RATE_BASIS_PROJECT
+    if rate_basis not in {RATE_BASIS_PROJECT, RATE_BASIS_EMPLOYEE}:
+        rate_basis = RATE_BASIS_PROJECT
     return {
-        "rate_basis": frappe.db.get_single_value("Time Tracking Settings", "rate_basis")
-        or RATE_TYPE_ROLE,
-        "allow_profile_rate_override": cint(
-            frappe.db.get_single_value(
-                "Time Tracking Settings", "allow_profile_rate_override"
-            )
-            or 0
-        ),
+        "rate_basis": rate_basis,
     }
 
 
-def _get_hourly_rate(profile_name, settings, cache):
+def _get_billing_rate_for_profile(profile_name, cache):
     if profile_name in cache:
         return cache[profile_name]
 
-    profile = frappe.db.get_value(
-        "Time Tracking Profile",
-        profile_name,
-        ["user", "hourly_rate"],
-        as_dict=True,
-    )
-    if not profile:
-        cache[profile_name] = 0
-        return 0
-
-    rate = 0
-    if settings.get("allow_profile_rate_override") and flt(profile.hourly_rate) > 0:
-        rate = flt(profile.hourly_rate)
-    elif settings.get("rate_basis") == RATE_TYPE_USER:
-        rate = flt(
-            frappe.db.get_value(
-                "Time Tracking Rate",
-                {"rate_type": RATE_TYPE_USER, "user": profile.user},
-                "hourly_rate",
-            )
-            or 0
-        )
-    else:
-        roles = frappe.get_roles(profile.user)
-        if roles:
-            rates = frappe.get_all(
-                "Time Tracking Rate",
-                filters={"rate_type": RATE_TYPE_ROLE, "role": ["in", roles]},
-                pluck="hourly_rate",
-            )
-            rate = max((flt(value) for value in rates), default=0)
-
+    rate = frappe.db.get_value("Time Tracking Profile", profile_name, "hourly_rate")
+    rate = flt(rate) if rate is not None else 0
     cache[profile_name] = rate
     return rate
+
+
+def _get_billing_rate(project, profile_name, settings, cache):
+    if settings.get("rate_basis") == RATE_BASIS_PROJECT:
+        return flt(project.bill_rate)
+    return _get_billing_rate_for_profile(profile_name, cache)
+
+
+def _get_profile_pay_rate(profile_name, cache):
+    if profile_name in cache:
+        return cache[profile_name]
+
+    rate = frappe.db.get_value("Time Tracking Profile", profile_name, "pay_rate")
+    rate = flt(rate) if rate is not None else 0
+    cache[profile_name] = rate
+    return rate
+
+
+def _get_pay_rate(project, profile_name, cache):
+    source = (project.pay_rate_source or PAY_RATE_SOURCE_PROJECT).strip()
+    if source == PAY_RATE_SOURCE_EMPLOYEE:
+        employee_rate = _get_profile_pay_rate(profile_name, cache)
+        if employee_rate > 0:
+            return employee_rate
+    return flt(project.pay_rate)
 
 
 def _calculate_percent(actual, budget):
@@ -282,11 +298,11 @@ def get_project_tree_nodes(doctype, parent="", **filters):
     parent_field = "parent_" + frappe.scrub(doctype)
     tree_filters = [[f"ifnull(`{parent_field}`,'')", "=", parent], ["docstatus", "<", 2]]
 
-    return frappe.get_list(
+    rows = frappe.get_list(
         doctype,
         fields=[
             "name as value",
-            "project_name as title",
+            "project_name",
             "is_group as expandable",
             "budget_hours",
             "budget_amount",
@@ -299,3 +315,21 @@ def get_project_tree_nodes(doctype, parent="", **filters):
         filters=tree_filters,
         order_by="name",
     )
+
+    for row in rows:
+        row.title = row.project_name or row.value
+
+    return rows
+
+
+@frappe.whitelist()
+def add_node():
+    from frappe.desk.treeview import make_tree_args
+
+    args = make_tree_args(**frappe.form_dict)
+    if getattr(args, "is_root", False):
+        args.parent_time_tracking_project = None
+    if args.get("parent_time_tracking_project") == "Time Tracking Project":
+        args.parent_time_tracking_project = None
+
+    frappe.get_doc(args).insert()

@@ -27,10 +27,10 @@ frappe.ui.form.on("Time Tracking Settings", {
                 title: __("Billing Rates"),
                 body: [
                     __(
-                        "Rates determine the budget amount calculations on projects."
+                        "Rates determine the billing amount calculations on projects."
                     ),
                     __(
-                        "Example: Choose Role-based rates to use the highest rate from the user's roles."
+                        "Example: Project-based uses the project's bill rate; Employee-based uses the profile's bill rate."
                     ),
                 ].join(" "),
             },

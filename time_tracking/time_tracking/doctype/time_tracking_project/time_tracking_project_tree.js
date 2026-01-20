@@ -1,8 +1,17 @@
 frappe.treeview_settings["Time Tracking Project"] = {
     get_tree_nodes:
         "time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project.get_project_tree_nodes",
+    add_tree_node:
+        "time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project.add_node",
+    get_tree_root: false,
+    onload: function (treeview) {
+        treeview.root_label = __(treeview.doctype);
+        treeview.root_value = "";
+        treeview.make_tree();
+    },
     get_label: function (node) {
-        const name = frappe.utils.escape_html(node.title || node.label);
+        const rawName = node.title || node.label || "";
+        const name = frappe.utils.escape_html(rawName ? __(rawName) : "");
         if (
             !(
                 frappe.user.has_role("System Manager") ||

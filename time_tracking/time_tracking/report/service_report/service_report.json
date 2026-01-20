@@ -1,0 +1,30 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "module": "Time Tracking",
+ "name": "Service Report",
+ "owner": "Administrator",
+ "ref_doctype": "Time Booking",
+ "report_name": "Service Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Time Tracking Employee"
+  },
+  {
+   "role": "Time Tracking Manager"
+  },
+  {
+   "role": "Time Tracking Admin"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
+}

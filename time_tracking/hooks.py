@@ -87,8 +87,8 @@ doctype_js = {
 # Installation
 # ------------
 
-# before_install = "time_tracking.install.before_install"
-# after_install = "time_tracking.install.after_install"
+after_install = "time_tracking.install.after_install"
+after_migrate = "time_tracking.install.after_migrate"
 
 # Fixtures
 # --------
@@ -125,6 +125,8 @@ fixtures = [
 
 # before_app_install = "time_tracking.utils.before_app_install"
 # after_app_install = "time_tracking.utils.after_app_install"
+
+# after_migrate = "time_tracking.install.after_migrate"
 
 # Integration Cleanup
 # -------------------
@@ -237,7 +239,7 @@ scheduler_events = {
 
 # Request Events
 # ----------------
-# before_request = ["time_tracking.utils.before_request"]
+# before_request = ["time_tracking.install.ensure_root_project"]
 # after_request = ["time_tracking.utils.after_request"]
 
 # Job Events

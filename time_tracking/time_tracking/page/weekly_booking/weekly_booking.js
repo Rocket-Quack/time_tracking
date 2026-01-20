@@ -334,7 +334,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
         state.projects.forEach((project) => {
             const value = escape(project.name);
-            const label = escape(project.project_name || project.name);
+            const rawLabel = project.project_name || project.name;
+            const label = escape(rawLabel || "");
             const selectedAttr = project.name === selected ? " selected" : "";
             if (selectedAttr) {
                 selectedFound = true;
@@ -1191,15 +1192,13 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                     updateVacationSummary(message.vacation);
                 }
 
-                frappe.msgprint({
-                    title: __("Saved"),
+                frappe.show_alert({
                     message: __("Weekly booking saved."),
                     indicator: "green",
                 });
 
                 if (message.warning) {
-                    frappe.msgprint({
-                        title: __("Notice"),
+                    frappe.show_alert({
                         message: message.warning,
                         indicator: "orange",
                     });

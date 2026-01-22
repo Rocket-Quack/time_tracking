@@ -110,6 +110,10 @@ fixtures = [
 	},
 	{"dt": "Workspace", "filters": [["name", "=", "Time Tracking"]]},
 	{"dt": "Custom HTML Block", "filters": [["module", "=", "Time Tracking"]]},
+	{
+		"dt": "Print Format",
+		"filters": [["name", "=", "Single Booking Service Report"]],
+	},
 ]
 
 # Uninstallation

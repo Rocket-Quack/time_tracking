@@ -1,0 +1,22 @@
+{
+ "creation": "2026-01-24 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "fa fa-download",
+ "modified": "2026-01-24 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Time Tracking",
+ "name": "time-tracking-export",
+ "owner": "Administrator",
+ "page_name": "time-tracking-export",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Time Tracking Admin"
+  }
+ ],
+ "standard": "Yes",
+ "title": "Time Tracking Export"
+}

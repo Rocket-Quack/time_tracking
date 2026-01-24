@@ -1,0 +1,141 @@
+frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
+    const page = frappe.ui.make_app_page({
+        parent: wrapper,
+        title: __("Time Tracking Export"),
+        single_column: true,
+    });
+
+    const $main = $(wrapper).find(".layout-main-section");
+    $main.addClass("time-tracking-export");
+
+    const $intro = $(
+        `<div class="mb-4">
+            <p class="text-muted mb-2">
+                ${__("Export time bookings with linked project and user data.")}
+            </p>
+        </div>`
+    );
+
+    const $fields = $('<div class="row"></div>');
+    const $left = $('<div class="col-md-6"></div>');
+    const $right = $('<div class="col-md-6"></div>');
+    $fields.append($left, $right);
+    $main.append($intro, $fields);
+
+    const controls = {};
+    const fieldDefs = [
+        {
+            fieldtype: "Select",
+            fieldname: "export_format",
+            label: __("Export Format"),
+            options: ["CSV", "XLSX"].join("\n"),
+            default: "CSV",
+            reqd: 1,
+        },
+        {
+            fieldtype: "Select",
+            fieldname: "date_format",
+            label: __("Date Format"),
+            options: ["DD.MM.YYYY", "YYYY-MM-DD"].join("\n"),
+            default: "DD.MM.YYYY",
+            reqd: 1,
+        },
+        {
+            fieldtype: "Select",
+            fieldname: "decimal_separator",
+            label: __("Decimal Separator"),
+            options: [".", ","].join("\n"),
+            default: ".",
+            reqd: 1,
+        },
+        {
+            fieldtype: "Date",
+            fieldname: "from_date",
+            label: __("From Date"),
+            default: frappe.datetime.month_start(),
+            reqd: 1,
+        },
+        {
+            fieldtype: "Date",
+            fieldname: "to_date",
+            label: __("To Date"),
+            default: frappe.datetime.get_today(),
+            reqd: 1,
+        },
+        {
+            fieldtype: "Link",
+            fieldname: "project",
+            label: __("Project"),
+            options: "Time Tracking Project",
+        },
+        {
+            fieldtype: "Check",
+            fieldname: "include_child_projects",
+            label: __("Include Child Projects"),
+            default: 1,
+            depends_on: "eval:doc.project",
+        },
+        {
+            fieldtype: "Link",
+            fieldname: "user",
+            label: __("Employee"),
+            options: "User",
+        },
+    ];
+
+    fieldDefs.forEach((df) => {
+        const parent =
+            ["export_format", "date_format", "decimal_separator", "from_date"].includes(
+                df.fieldname
+            )
+                ? $left
+                : $right;
+        const wrapper = $('<div class="mb-3"></div>').appendTo(parent);
+        const control = frappe.ui.form.make_control({
+            df,
+            parent: wrapper,
+            render_input: true,
+        });
+        control.refresh();
+        controls[df.fieldname] = control;
+    });
+
+    if (controls.project) {
+        controls.project.get_query = function () {
+            return {
+                query:
+                    "time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project.project_link_query",
+                filters: {
+                    is_group: 0,
+                },
+            };
+        };
+    }
+
+    page.set_primary_action(__("Export"), () => {
+        const args = {
+            export_format: controls.export_format.get_value(),
+            date_format: controls.date_format.get_value(),
+            decimal_separator: controls.decimal_separator.get_value(),
+            from_date: controls.from_date.get_value(),
+            to_date: controls.to_date.get_value(),
+            project: controls.project.get_value(),
+            include_child_projects: controls.include_child_projects.get_value() ? 1 : 0,
+            user: controls.user.get_value(),
+        };
+
+        if (typeof open_url_post === "function") {
+            open_url_post(
+                "/api/method/time_tracking.time_tracking.page.time_tracking_export.time_tracking_export.export_bookings",
+                args
+            );
+            return;
+        }
+
+        frappe.call({
+            method:
+                "time_tracking.time_tracking.page.time_tracking_export.time_tracking_export.export_bookings",
+            args,
+        });
+    });
+};

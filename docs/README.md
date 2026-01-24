@@ -11,4 +11,3 @@ This folder provides a structured overview of the Time Tracking app. Start with 
 - [Access Control](Access-Control.md) - Roles, profiles, and self-assign rules
 - [Reports & Exports](Reports-Exports.md) - Available reports and export behavior
 - [Configuration](Configuration.md) - Settings, holidays, overtime, vacation, notifications
-- [Known Gaps](Known-Gaps.md) - Features not implemented yet

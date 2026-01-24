@@ -1,0 +1,92 @@
+import frappe
+from frappe.tests.utils import FrappeTestCase
+
+
+class TestTimeTrackingProfileAssignments(FrappeTestCase):
+    def setUp(self):
+        frappe.set_user("Administrator")
+        frappe.db.set_single_value("Time Tracking Settings", "require_project_assignment", 0)
+
+    def _unique_email(self, prefix):
+        return f"{prefix}-{frappe.generate_hash(length=8)}@example.com"
+
+    def _make_user(self, prefix):
+        email = self._unique_email(prefix)
+        user = frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": email,
+                "first_name": "Test",
+                "last_name": prefix,
+                "enabled": 1,
+                "user_type": "System User",
+            }
+        ).insert(ignore_permissions=True)
+        user.add_roles("Time Tracking Employee")
+        return user.name
+
+    def _make_project(self, name, assignment_mode="Open", allowed_users=None):
+        doc = frappe.get_doc(
+            {
+                "doctype": "Time Tracking Project",
+                "project_name": name,
+                "assignment_mode": assignment_mode,
+                "allowed_users": [
+                    {"user": user} for user in (allowed_users or [])
+                ],
+            }
+        )
+        doc.insert(ignore_permissions=True)
+        return doc.name
+
+    def _make_profile(self, user, projects):
+        profile = frappe.get_doc(
+            {
+                "doctype": "Time Tracking Profile",
+                "user": user,
+                "target_period": "Weekly",
+                "weekly_target_hours": 40,
+                "workdays_per_week": 5,
+                "project_assignments": [
+                    {"project": project, "active": 1} for project in projects
+                ],
+            }
+        )
+        profile.insert(ignore_permissions=True)
+        return profile.name
+
+    def test_restricted_project_allows_listed_user(self):
+        user = self._make_user("allowed")
+        project = self._make_project(
+            f"Restricted-{frappe.generate_hash(length=6)}",
+            assignment_mode="Restricted",
+            allowed_users=[user],
+        )
+
+        frappe.set_user(user)
+        self._make_profile(user, [project])
+
+    def test_restricted_project_blocks_unlisted_user(self):
+        allowed = self._make_user("allowed")
+        project = self._make_project(
+            f"Restricted-{frappe.generate_hash(length=6)}",
+            assignment_mode="Restricted",
+            allowed_users=[allowed],
+        )
+
+        user = self._make_user("blocked")
+        frappe.set_user(user)
+        with self.assertRaises(frappe.ValidationError):
+            self._make_profile(user, [project])
+
+    def test_admin_can_assign_restricted_project(self):
+        allowed = self._make_user("allowed")
+        project = self._make_project(
+            f"Restricted-{frappe.generate_hash(length=6)}",
+            assignment_mode="Restricted",
+            allowed_users=[allowed],
+        )
+
+        user = self._make_user("adminassign")
+        frappe.set_user("Administrator")
+        self._make_profile(user, [project])

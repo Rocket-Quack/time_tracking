@@ -20,6 +20,8 @@ class TimeTrackingProfile(Document):
         self._validate_pay_rate()
         self._validate_vacation_days()
         self._validate_vacation_opening_balance()
+        self._validate_project_assignment_duplicates()
+        self._validate_project_assignment_permissions()
         self._validate_project_assignments()
 
     def after_insert(self):
@@ -188,6 +190,89 @@ class TimeTrackingProfile(Document):
 
         if _normalize(self.project_assignments) != _normalize(previous.project_assignments):
             frappe.throw(_("Project assignments can only be managed by an admin."))
+
+    def _validate_project_assignment_duplicates(self):
+        seen = set()
+        duplicates = set()
+
+        for row in self.project_assignments or []:
+            project = (row.project or "").strip()
+            if not project:
+                continue
+            if project in seen:
+                duplicates.add(project)
+            else:
+                seen.add(project)
+
+        if duplicates:
+            project_list = ", ".join(sorted(duplicates))
+            frappe.throw(
+                _("Project {0} is already assigned to this profile.").format(project_list)
+            )
+
+    def _validate_project_assignment_permissions(self):
+        if _is_admin() or _require_project_assignment_setting():
+            return
+
+        if not self.user:
+            return
+
+        current_map = {}
+        for row in self.project_assignments or []:
+            if not row.project:
+                continue
+            current_map[row.project] = int(row.active) if row.active is not None else 0
+
+        if not current_map:
+            return
+
+        previous = self.get_doc_before_save()
+        previous_map = {}
+        if previous:
+            for row in previous.project_assignments or []:
+                if not row.project:
+                    continue
+                previous_map[row.project] = (
+                    int(row.active) if row.active is not None else 0
+                )
+
+        newly_active = {
+            project
+            for project, active in current_map.items()
+            if active and previous_map.get(project, 0) == 0
+        }
+
+        if not newly_active:
+            return
+
+        projects = frappe.get_all(
+            "Time Tracking Project",
+            filters={"name": ["in", list(newly_active)]},
+            fields=["name", "assignment_mode"],
+        )
+        restricted = {
+            project.name
+            for project in projects
+            if (project.assignment_mode or "Open") == "Restricted"
+        }
+        if not restricted:
+            return
+
+        allowed = set(
+            frappe.get_all(
+                "Time Tracking Project Allowed User",
+                filters={"parent": ["in", list(restricted)], "user": self.user},
+                pluck="parent",
+            )
+        )
+        unauthorized = restricted - allowed
+        if unauthorized:
+            project_list = ", ".join(sorted(unauthorized))
+            frappe.throw(
+                _(
+                    "You are not allowed to self-assign the following projects: {0}"
+                ).format(project_list)
+            )
 
     def _sync_opening_balance(self, previous=None):
         if previous and flt(previous.overtime_opening_balance_hours) == flt(

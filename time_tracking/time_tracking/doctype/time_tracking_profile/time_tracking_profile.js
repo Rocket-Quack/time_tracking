@@ -349,6 +349,8 @@ frappe.ui.form.on("Time Tracking Profile", {
         if (frm.fields_dict.project_assignments) {
             frm.fields_dict.project_assignments.grid.get_field("project").get_query = function () {
                 return {
+                    query:
+                        "time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project.project_link_query",
                     filters: {
                         is_group: 0,
                         not_bookable: 0,

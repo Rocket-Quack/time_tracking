@@ -9,37 +9,52 @@
  "document_type": "Document",
  "engine": "InnoDB",
   "field_order": [
+   "basics_section",
    "project_name",
    "project_description",
-  "bill_rate",
-  "pay_rate_source",
-  "pay_rate",
-  "is_internal",
-  "parent_time_tracking_project",
-  "is_group",
-  "not_bookable",
-  "budget_section",
-  "budget_hours",
-  "budget_amount",
-  "budget_summary_column",
-  "total_budget_hours",
-  "total_budget_amount",
-  "actual_hours",
-  "actual_amount",
-  "actual_pay_amount",
-  "profit_amount",
-  "profit_percent",
-  "budget_status",
-  "budget_hours_percent",
-  "budget_amount_percent",
-  "lft",
-  "rgt",
-  "old_parent"
+   "basics_column",
+   "parent_time_tracking_project",
+   "project_status",
+   "is_group",
+   "assignment_section",
+   "assignment_mode",
+   "allowed_users",
+   "assignment_column",
+   "not_bookable",
+   "is_internal",
+   "rates_section",
+   "bill_rate",
+   "pay_rate_source",
+   "rates_column",
+   "pay_rate",
+   "budget_section",
+   "budget_hours",
+   "budget_amount",
+   "budget_summary_column",
+   "total_budget_hours",
+   "total_budget_amount",
+   "actual_hours",
+   "actual_amount",
+   "actual_pay_amount",
+   "profit_amount",
+   "profit_percent",
+   "budget_status",
+   "budget_hours_percent",
+   "budget_amount_percent",
+   "lft",
+   "rgt",
+   "old_parent"
  ],
  "fields": [
   {
+   "fieldname": "basics_section",
+   "fieldtype": "Section Break",
+   "label": "Project Basics"
+  },
+  {
    "fieldname": "project_name",
    "fieldtype": "Data",
+   "in_quick_entry": 1,
    "label": "Project Name",
    "reqd": 1,
    "unique": 1,
@@ -48,8 +63,18 @@
   {
    "fieldname": "project_description",
    "fieldtype": "Small Text",
+   "in_quick_entry": 1,
    "label": "Description",
    "description": "Optional internal description of the project."
+  },
+  {
+   "fieldname": "basics_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Billing & Rates"
   },
   {
    "fieldname": "bill_rate",
@@ -65,6 +90,10 @@
    "label": "Pay Rate Source",
    "options": "Project\nEmployee",
    "description": "Use project pay rate or employee pay rate for costs."
+  },
+  {
+   "fieldname": "rates_column",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "pay_rate",
@@ -86,9 +115,45 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "in_list_view": 1,
+   "in_quick_entry": 1,
    "label": "Parent Project",
    "options": "Time Tracking Project",
    "description": "Parent project for hierarchy and rollups."
+  },
+  {
+   "default": "Active",
+   "fieldname": "project_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_quick_entry": 1,
+   "label": "Status",
+   "options": "Active\nInactive",
+   "description": "Controls whether time can be booked on this project."
+  },
+  {
+   "fieldname": "assignment_section",
+   "fieldtype": "Section Break",
+   "label": "Assignment & Booking"
+  },
+  {
+   "default": "Open",
+   "fieldname": "assignment_mode",
+   "fieldtype": "Select",
+   "in_quick_entry": 1,
+   "label": "Assignment Mode",
+   "options": "Open\nRestricted",
+   "description": "Controls whether employees can self-assign this project."
+  },
+  {
+   "fieldname": "allowed_users",
+   "fieldtype": "Table",
+   "label": "Allowed Users",
+   "options": "Time Tracking Project Allowed User",
+   "depends_on": "eval:doc.assignment_mode === 'Restricted'"
+  },
+  {
+   "fieldname": "assignment_column",
+   "fieldtype": "Column Break"
   },
   {
    "default": "0",
@@ -96,12 +161,15 @@
    "fieldname": "is_group",
    "fieldtype": "Check",
    "in_list_view": 1,
+   "in_quick_entry": 1,
    "label": "Is Group"
   },
   {
    "default": "0",
    "fieldname": "not_bookable",
    "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_quick_entry": 1,
    "label": "Not Bookable",
    "description": "Prevent new bookings on this project."
   },

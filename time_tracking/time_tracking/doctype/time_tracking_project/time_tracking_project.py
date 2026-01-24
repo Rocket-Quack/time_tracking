@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.query_builder import DocType
 from frappe.model.document import Document
 from frappe.utils import flt
 
@@ -10,12 +11,56 @@ PAY_RATE_SOURCE_PROJECT = "Project"
 PAY_RATE_SOURCE_EMPLOYEE = "Employee"
 
 BUDGET_STATUS_UNDER = "Under Budget"
+
+
+def _is_admin(user=None):
+    if not user:
+        user = frappe.session.user
+    roles = frappe.get_roles(user)
+    return "System Manager" in roles or "Time Tracking Admin" in roles
 BUDGET_STATUS_ON = "On Budget"
 BUDGET_STATUS_OVER = "Over Budget"
 
 class TimeTrackingProject(Document):
     def validate(self):
+        self._ensure_project_status()
+        self._ensure_assignment_mode()
+        self._validate_unique_project_name()
         self._set_budget_metrics()
+
+    def _ensure_project_status(self):
+        status = (self.project_status or "").strip()
+        if not status:
+            self.project_status = "Inactive" if self.not_bookable else "Active"
+
+    def _ensure_assignment_mode(self):
+        mode = (self.assignment_mode or "").strip()
+        if not mode:
+            self.assignment_mode = "Open"
+
+    def _validate_unique_project_name(self):
+        if not self.project_name:
+            return
+
+        parent = self.parent_time_tracking_project or ""
+        current_name = self.name or ""
+        project = DocType("Time Tracking Project")
+        query = (
+            frappe.qb.from_(project)
+            .select(project.name)
+            .where(project.project_name == self.project_name)
+            .where(project.name != current_name)
+        )
+        if parent:
+            query = query.where(project.parent_time_tracking_project == parent)
+        else:
+            query = query.where(project.parent_time_tracking_project.isnull())
+
+        duplicate = query.limit(1).run(as_dict=True)
+        if duplicate:
+            frappe.throw(
+                _("Project name must be unique within the same parent project.")
+            )
 
     def _set_budget_metrics(self):
         metrics = _calculate_project_metrics(self)
@@ -282,6 +327,41 @@ def _get_ancestor_names(project_name):
     )
 
 
+def _get_project_path_label(project_name, cache):
+    if not project_name:
+        return ""
+    if project_name in cache:
+        return cache[project_name]
+
+    row = frappe.db.get_value(
+        "Time Tracking Project",
+        project_name,
+        ["project_name", "parent_time_tracking_project"],
+        as_dict=True,
+    )
+    if not row:
+        cache[project_name] = project_name
+        return project_name
+
+    label = row.project_name or project_name
+    parent = row.parent_time_tracking_project
+    if parent:
+        parent_label = _get_project_path_label(parent, cache)
+        if parent_label:
+            label = f"{parent_label} / {label}"
+
+    cache[project_name] = label
+    return label
+
+
+def build_project_path_labels(project_names):
+    labels = {}
+    cache = {}
+    for name in project_names or []:
+        labels[name] = _get_project_path_label(name, cache)
+    return labels
+
+
 @frappe.whitelist()
 def recalculate_all_project_metrics():
     projects = frappe.get_all(
@@ -304,6 +384,8 @@ def get_project_tree_nodes(doctype, parent="", **filters):
             "name as value",
             "project_name",
             "is_group as expandable",
+            "project_status",
+            "not_bookable",
             "budget_hours",
             "budget_amount",
             "budget_status",
@@ -333,3 +415,70 @@ def add_node():
         args.parent_time_tracking_project = None
 
     frappe.get_doc(args).insert()
+
+
+@frappe.whitelist()
+def project_link_query(doctype, txt, searchfield, start, page_len, filters):
+    project = DocType("Time Tracking Project")
+    allowed_user = DocType("Time Tracking Project Allowed User")
+
+    query = frappe.qb.from_(project)
+    query = query.select(project.name, project.project_name, project.parent_time_tracking_project)
+
+    if txt:
+        like_value = f"%{txt}%"
+        query = query.where(
+            (project.project_name.like(like_value)) | (project.name.like(like_value))
+        )
+
+    if filters:
+        allowed_filters = {"is_group", "not_bookable", "project_status"}
+        for fieldname, value in (filters or {}).items():
+            if fieldname not in allowed_filters:
+                continue
+            if value in ("", None):
+                continue
+            field = project[fieldname]
+            if isinstance(value, (list, tuple)) and len(value) == 2:
+                operator, operand = value
+                if operator == "in":
+                    query = query.where(field.isin(operand))
+                elif operator == "not in":
+                    query = query.where(~field.isin(operand))
+                elif operator == "!=":
+                    query = query.where(field != operand)
+                elif operator == ">":
+                    query = query.where(field > operand)
+                elif operator == ">=":
+                    query = query.where(field >= operand)
+                elif operator == "<":
+                    query = query.where(field < operand)
+                elif operator == "<=":
+                    query = query.where(field <= operand)
+                else:
+                    query = query.where(field == operand)
+            else:
+                query = query.where(field == value)
+
+    if not _is_admin():
+        user = frappe.session.user
+        query = query.left_join(allowed_user).on(
+            (allowed_user.parent == project.name)
+            & (allowed_user.user == user)
+        )
+        query = query.where(
+            (project.assignment_mode.isnull())
+            | (project.assignment_mode == "Open")
+            | (project.assignment_mode == "")
+            | (allowed_user.user == user)
+        )
+
+    query = query.orderby(project.lft).limit(page_len).offset(start)
+    rows = query.run(as_dict=True)
+
+    path_cache = {}
+    results = []
+    for row in rows:
+        label = _get_project_path_label(row.name, path_cache)
+        results.append([row.name, label])
+    return results

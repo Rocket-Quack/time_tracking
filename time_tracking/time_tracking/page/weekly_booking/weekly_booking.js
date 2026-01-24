@@ -334,7 +334,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
         state.projects.forEach((project) => {
             const value = escape(project.name);
-            const rawLabel = project.project_name || project.name;
+            const rawLabel = project.path_label || project.project_name || project.name;
             const label = escape(rawLabel || "");
             const selectedAttr = project.name === selected ? " selected" : "";
             if (selectedAttr) {

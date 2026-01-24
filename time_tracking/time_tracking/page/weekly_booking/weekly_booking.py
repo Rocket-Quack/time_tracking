@@ -9,6 +9,9 @@ from time_tracking.time_tracking.overtime_utils import (
     get_weekly_forecast,
     recalculate_overtime_for_date,
 )
+from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
+    build_project_path_labels,
+)
 from time_tracking.time_tracking.vacation_utils import (
     get_hours_per_vacation_day,
     get_vacation_balance,
@@ -164,7 +167,15 @@ def _get_assigned_projects(user):
         fields=["name", "project_name"],
     )
     project_map = {project.name: project for project in projects}
-    return [project_map[name] for name in project_names if name in project_map]
+    path_labels = build_project_path_labels(list(project_map.keys()))
+    ordered = []
+    for name in project_names:
+        if name not in project_map:
+            continue
+        project = project_map[name]
+        project.path_label = path_labels.get(name, project.project_name or name)
+        ordered.append(project)
+    return ordered
 
 
 def _get_assigned_project_names(user):

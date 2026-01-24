@@ -2,6 +2,7 @@ import calendar
 
 import frappe
 from frappe import _
+from frappe.query_builder import DocType
 from frappe.utils import add_days, flt, getdate, nowdate, strip_html
 
 PERIOD_DAY = "Day"
@@ -106,38 +107,35 @@ def execute(filters=None):
     project_names = _get_project_names(project, include_children)
     user_filter = (filters.get("user") or "").strip()
 
-    conditions = ["tb.date between %(start_date)s and %(end_date)s"]
-    values = {"start_date": start_date, "end_date": end_date}
+    tb = DocType("Time Booking")
+    ttp = DocType("Time Tracking Profile")
+    usr = DocType("User")
+
+    query = (
+        frappe.qb.from_(tb)
+        .left_join(ttp)
+        .on(ttp.name == tb.time_tracking_profile)
+        .left_join(usr)
+        .on(usr.name == ttp.user)
+        .select(
+            tb.date.as_("date"),
+            ttp.user.as_("user"),
+            usr.full_name.as_("employee_name"),
+            tb.project.as_("project"),
+            tb.notes.as_("note"),
+            tb.duration_minutes.as_("duration_minutes"),
+        )
+        .where(tb.date.between(start_date, end_date))
+    )
 
     if project_names:
-        conditions.append("tb.project in %(projects)s")
-        values["projects"] = tuple(project_names)
+        query = query.where(tb.project.isin(project_names))
 
     if user_filter:
-        conditions.append("ttp.user = %(user)s")
-        values["user"] = user_filter
+        query = query.where(ttp.user == user_filter)
 
-    where_clause = " and ".join(conditions)
-    rows = frappe.db.sql(
-        f"""
-        select
-            tb.date as date,
-            ttp.user as user,
-            usr.full_name as employee_name,
-            tb.project as project,
-            tb.notes as note,
-            tb.duration_minutes as duration_minutes
-        from `tabTime Booking` tb
-        left join `tabTime Tracking Profile` ttp
-            on ttp.name = tb.time_tracking_profile
-        left join `tabUser` usr
-            on usr.name = ttp.user
-        where {where_clause}
-        order by tb.date asc, tb.project asc, ttp.user asc
-        """,
-        values,
-        as_dict=True,
-    )
+    query = query.orderby(tb.date, tb.project, ttp.user)
+    rows = query.run(as_dict=True)
 
     data = []
     for row in rows:

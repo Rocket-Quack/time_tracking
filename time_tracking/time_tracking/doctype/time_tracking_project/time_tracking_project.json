@@ -2,7 +2,7 @@
  "actions": [],
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "field:project_name",
+ "autoname": "hash",
  "creation": "2026-01-09 00:00:00.000000",
  "description": "Projects for time tracking, organized in a hierarchy.",
  "doctype": "DocType",
@@ -54,10 +54,10 @@
   {
    "fieldname": "project_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "in_quick_entry": 1,
    "label": "Project Name",
    "reqd": 1,
-   "unique": 1,
    "description": "Project identifier used for links and hierarchy."
   },
   {
@@ -316,7 +316,7 @@
  "modified_by": "Administrator",
  "module": "Time Tracking",
  "name": "Time Tracking Project",
- "naming_rule": "By fieldname",
+ "naming_rule": "Random",
  "nsm_parent_field": "parent_time_tracking_project",
  "owner": "Administrator",
  "permissions": [
@@ -371,5 +371,7 @@
  "sort_order": "DESC",
  "states": [],
  "track_changes": 1,
+ "title_field": "project_name",
+ "show_title_field_in_link": 1,
  "default_view": "Tree"
 }

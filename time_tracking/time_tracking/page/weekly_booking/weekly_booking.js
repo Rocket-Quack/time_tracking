@@ -336,10 +336,6 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		return roles.includes("System Manager") || roles.includes("Time Tracking Admin");
 	}
 
-	function routeToTimeTrackingWorkspace() {
-		frappe.set_route("time-tracking");
-	}
-
 	function getServerErrorMessage(error) {
 		const response = error && error.responseJSON;
 		const serverMessages = response && response._server_messages;
@@ -391,27 +387,16 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 					options: `<p class="mb-0">${frappe.utils.escape_html(text)}</p>`,
 				},
 			],
-			primary_action_label: isAdmin
-				? __("Create Time Tracking Profile")
-				: __("Back to Workspace"),
+			primary_action_label: isAdmin ? __("Create Time Tracking Profile") : __("Close"),
 			primary_action: function () {
 				dialog.hide();
 				if (isAdmin) {
 					frappe.route_options = { user: $user.val() };
 					frappe.new_doc("Time Tracking Profile");
-				} else {
-					routeToTimeTrackingWorkspace();
 				}
 			},
 			static: true,
 		});
-
-		if (isAdmin) {
-			dialog.add_custom_action(__("Back to Workspace"), () => {
-				dialog.hide();
-				routeToTimeTrackingWorkspace();
-			});
-		}
 
 		dialog.show();
 		dialog.$wrapper.modal({ backdrop: "static", keyboard: false });

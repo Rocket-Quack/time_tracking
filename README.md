@@ -14,8 +14,8 @@ Teams can record work hours, manage timesheets, generate reports, and export dat
 ## Supported Versions
 
 | Frappe | Support Status |
-|--------|----------------|
-| v16 Beta | Coming soon... |
+|-----|----------------|
+| v16 | Coming soon... |
 | v15 | Coming soon... |
 
 ## Installation (Frappe Cloud)
@@ -59,7 +59,7 @@ bench --site time-tracking.yoursite.com migrate
 
 Please create a ticket via [Issues](https://github.com/Rocket-Quack/erpnext_sumup/issues) for:
 
-- **Bug Reports & Feature Requests** 
+- **Bug Reports & Feature Requests**
 - **Questions about general use**
 
 ## Trademark Notice

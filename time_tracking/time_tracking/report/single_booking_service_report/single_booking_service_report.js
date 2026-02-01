@@ -83,6 +83,7 @@ frappe.query_reports["Single Booking Service Report"] = {
 				frappe.query_report.report_name === "Single Booking Service Report"
 			) {
 				dialog.set_value("report", "Single Booking Service Report");
+				dialog.set_value("print_format", "Single Booking Service Report");
 				dialog.set_value("orientation", "Portrait");
 				dialog.set_value("with_letter_head", 0);
 				dialog.set_value("letter_head", null);
@@ -97,6 +98,7 @@ frappe.query_reports["Single Booking Service Report"] = {
 			report.print_report = function (print_settings) {
 				print_settings = print_settings || {};
 				print_settings.report = "Single Booking Service Report";
+				print_settings.print_format = "Single Booking Service Report";
 				print_settings.orientation = "Portrait";
 				return original_print(print_settings);
 			};
@@ -105,6 +107,7 @@ frappe.query_reports["Single Booking Service Report"] = {
 			report.pdf_report = function (print_settings) {
 				print_settings = print_settings || {};
 				print_settings.report = "Single Booking Service Report";
+				print_settings.print_format = "Single Booking Service Report";
 				print_settings.orientation = "Portrait";
 				return original_pdf(print_settings);
 			};

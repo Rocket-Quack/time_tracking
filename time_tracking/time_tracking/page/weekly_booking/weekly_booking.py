@@ -6,6 +6,7 @@ from frappe.utils import add_days, cint, flt, formatdate, getdate
 
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	build_project_path_labels,
+	expand_project_assignments,
 )
 from time_tracking.time_tracking.overtime_utils import (
 	get_holiday_dates_for_range,
@@ -149,6 +150,8 @@ def _get_assigned_projects(user, profile_name=None):
 		fields=["project"],
 	)
 	project_names = [row.project for row in assignments if row.project]
+	if project_names:
+		project_names = expand_project_assignments(project_names, include_not_bookable=True)
 	vacation_project = get_vacation_project()
 	if vacation_project and vacation_project not in project_names:
 		project_names.append(vacation_project)

@@ -1,0 +1,75 @@
+name: Manual Build and Push Image
+
+run-name: "Build image ${{ inputs.image_tag }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Docker tag to publish"
+        required: true
+        default: "latest"
+        type: string
+      app_branch:
+        description: "time_tracking app branch"
+        required: true
+        default: "develop"
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE: ghcr.io/${{ github.repository }}
+
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+
+      - name: Checkout frappe_docker
+        uses: actions/checkout@v4
+        with:
+          repository: frappe/frappe_docker
+          path: frappe_docker
+
+      - name: Prepare apps.json (base64)
+        id: prep
+        shell: bash
+        run: |
+          cat > apps.json <<EOF
+          [
+            {
+              "url": "https://github.com/${{ github.repository }}",
+              "branch": "${{ inputs.app_branch }}"
+            }
+          ]
+          EOF
+
+          APPS_JSON_BASE64="$(base64 -w 0 apps.json 2>/dev/null || base64 apps.json)"
+          echo "APPS_JSON_BASE64=$APPS_JSON_BASE64" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
+            --build-arg=FRAPPE_BRANCH=version-15 \
+            --build-arg=APPS_JSON_BASE64=${{ steps.prep.outputs.APPS_JSON_BASE64 }} \
+            --tag ${{ env.IMAGE }}:${{ inputs.image_tag }} \
+            --file frappe_docker/images/layered/Containerfile \
+            frappe_docker
+
+      - name: Push image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ inputs.image_tag }}

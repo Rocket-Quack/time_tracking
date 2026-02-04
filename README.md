@@ -55,6 +55,39 @@ Run migrations:
 bench --site time-tracking.yoursite.com migrate
 ```
 
+## Installation (Docker)
+
+Use the prebuilt image to avoid building it yourself. The image is published to GHCR:
+
+```
+ghcr.io/rocket-quack/time_tracking:latest
+```
+
+`latest` is a moving tag that always points to the most recently published build. Use a version tag (for
+example `1.0.0`) to pin a specific image.
+
+```
+ghcr.io/rocket-quack/time_tracking:v1.0.0
+```
+
+In your `docker-compose.yml` (based on `frappe/frappe_docker`), point the backend services to this image:
+
+```yaml
+services:
+  backend:
+    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+  queue:
+    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+  scheduler:
+    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+  websocket:
+    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+```
+
+Keep the remaining services (database, redis, frontend) as in your standard `frappe_docker` compose.
+See the Frappe Docker compose documentation:
+[Frappe Docker](https://github.com/frappe/frappe_docker).
+
 ## Community Support
 
 Please create a ticket via [Issues](https://github.com/Rocket-Quack/erpnext_sumup/issues) for:

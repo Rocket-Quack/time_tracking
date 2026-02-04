@@ -25,11 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
-      IMAGE: ghcr.io/${{ github.repository }}
 
     steps:
       - name: Checkout app repo
         uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        shell: bash
+        run: |
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Checkout frappe_docker
         uses: actions/checkout@v4

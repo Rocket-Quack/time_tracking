@@ -1,8 +1,8 @@
 {
  "actions": [],
  "allow_import": 1,
- "allow_rename": 1,
- "autoname": "hash",
+ "allow_rename": 0,
+ "autoname": "UUID",
  "creation": "2026-01-09 00:00:00.000000",
  "description": "Projects for time tracking, organized in a hierarchy.",
  "doctype": "DocType",

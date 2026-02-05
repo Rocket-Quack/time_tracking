@@ -1,3 +1,5 @@
+import uuid
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -28,7 +30,8 @@ class TimeTrackingProject(Document):
 	def autoname(self):
 		if self.name:
 			return
-		self.name = frappe.generate_hash(length=10)
+		# Use UUID without hyphens for stable external references (e.g. imports).
+		self.name = uuid.uuid4().hex
 
 	def validate(self):
 		self._ensure_project_status()

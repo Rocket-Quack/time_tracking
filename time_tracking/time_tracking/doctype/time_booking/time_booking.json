@@ -1,13 +1,14 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:TTB-{#####}",
+ "autoname": "UUID",
  "creation": "2026-01-09 00:00:00.000000",
  "doctype": "DocType",
  "document_type": "Document",
  "engine": "InnoDB",
  "field_order": [
   "time_tracking_profile",
+  "booking_code",
   "date",
   "project",
   "duration_minutes",
@@ -22,6 +23,16 @@
    "label": "Time Tracking Profile",
    "options": "Time Tracking Profile",
    "reqd": 1
+  },
+  {
+   "fieldname": "booking_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Booking Code",
+   "no_copy": 1,
+   "read_only": 1,
+   "search_index": 1,
+   "unique": 1
   },
   {
    "fieldname": "date",
@@ -60,7 +71,7 @@
  "modified_by": "Administrator",
  "module": "Time Tracking",
  "name": "Time Booking",
- "naming_rule": "Expression",
+ "naming_rule": "Random",
  "owner": "Administrator",
  "permissions": [
   {
@@ -118,11 +129,12 @@
   }
  ],
  "quick_entry": 1,
- "search_fields": "time_tracking_profile,project",
+ "search_fields": "booking_code,time_tracking_profile,project",
  "show_name_in_global_search": 1,
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "project",
+ "title_field": "booking_code",
  "track_changes": 1
 }

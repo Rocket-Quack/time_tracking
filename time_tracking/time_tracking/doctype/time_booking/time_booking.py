@@ -1,7 +1,10 @@
+import uuid
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.model.naming import make_autoname
+from frappe.utils import flt, nowdate
 
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	expand_project_assignments,
@@ -17,6 +20,15 @@ from time_tracking.time_tracking.vacation_utils import (
 
 
 class TimeBooking(Document):
+	def autoname(self):
+		if self.name:
+			return
+		# Use UUID without hyphens for stable external references (e.g. imports).
+		self.name = uuid.uuid4().hex
+
+	def before_insert(self):
+		self._set_booking_code()
+
 	def validate(self):
 		self._set_default_profile()
 		self._validate_profile_permission()
@@ -149,3 +161,9 @@ class TimeBooking(Document):
 		if not self.date or not self.time_tracking_profile:
 			return
 		validate_holiday_list_for_date(self.date)
+
+	def _set_booking_code(self):
+		if self.booking_code:
+			return
+		date_key = nowdate().replace("-", "")
+		self.booking_code = make_autoname(f"TTB-{date_key}-.####")

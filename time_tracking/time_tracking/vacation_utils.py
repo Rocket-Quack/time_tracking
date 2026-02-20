@@ -4,6 +4,8 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate, now_datetime, nowdate
 
+from time_tracking.time_tracking.db_aggregates import sum_as
+
 WEEKS_PER_MONTH = 52 / 12
 HOLIDAY_LIST_SUFFIX = "Holiday-List"
 
@@ -71,7 +73,7 @@ def _get_opening_balance_days_for_year(profile, year):
             "entry_type": ENTRY_TYPE_OPENING,
             "period_start": ["between", [start_date, end_date]],
         },
-        fields=["sum(delta_days) as total"],
+        fields=[sum_as("delta_days", "total")],
     )
     if totals and totals[0].total is not None:
         return flt(totals[0].total)
@@ -305,9 +307,7 @@ def get_vacation_used_minutes(profile_name, date, exclude_booking_name=None):
     if exclude_booking_name:
         filters["name"] = ["!=", exclude_booking_name]
 
-    totals = frappe.get_all(
-        "Time Booking", filters=filters, fields=["sum(duration_minutes) as total"]
-    )
+    totals = frappe.get_all("Time Booking", filters=filters, fields=[sum_as("duration_minutes", "total")])
     if totals and totals[0].total is not None:
         return flt(totals[0].total)
     return 0

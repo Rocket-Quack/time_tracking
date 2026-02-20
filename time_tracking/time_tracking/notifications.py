@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, getdate, nowdate
 
+from time_tracking.time_tracking.db_aggregates import max_as
 from time_tracking.time_tracking.overtime_utils import get_holiday_dates_for_range
 
 TRIGGER_MONTH_END = "Month End"
@@ -89,7 +90,7 @@ def _get_last_booking_date(profile_name):
     rows = frappe.get_all(
         "Time Booking",
         filters={"time_tracking_profile": profile_name},
-        fields=["max(date) as last_date"],
+        fields=[max_as("date", "last_date")],
     )
     if rows and rows[0].last_date:
         return getdate(rows[0].last_date)

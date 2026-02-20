@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, now_datetime, nowdate
 
+from time_tracking.time_tracking.db_aggregates import max_as, min_as, sum_as
 from time_tracking.time_tracking.vacation_utils import (
     WEEKS_PER_MONTH,
     get_expected_holiday_list_name,
@@ -88,7 +89,7 @@ def _get_time_booking_totals(profile_name, start_date, end_date):
             "time_tracking_profile": profile_name,
             "date": ["between", [start_date, end_date]],
         },
-        fields=["project", "sum(duration_minutes) as total_minutes"],
+        fields=["project", sum_as("duration_minutes", "total_minutes")],
         group_by="project",
     )
     totals_by_project = {}
@@ -107,7 +108,7 @@ def _get_ledger_balance_until(user, end_date):
             "user": user,
             "period_start": ["<=", end_date],
         },
-        fields=["sum(delta_minutes) as total"],
+        fields=[sum_as("delta_minutes", "total")],
     )
     if totals and totals[0].total is not None:
         return flt(totals[0].total)
@@ -347,7 +348,10 @@ def _get_booking_date_range(profile_name):
     rows = frappe.get_all(
         "Time Booking",
         filters={"time_tracking_profile": profile_name},
-        fields=["min(date) as start_date", "max(date) as end_date"],
+        fields=[
+            min_as("date", "start_date"),
+            max_as("date", "end_date"),
+        ],
     )
     if not rows or not rows[0].start_date:
         return None, None
@@ -371,7 +375,7 @@ def update_overtime_balance(profile, settings=None):
     totals = frappe.get_all(
         "Time Tracking Overtime Ledger",
         filters={"user": profile.user},
-        fields=["sum(delta_minutes) as total"],
+        fields=[sum_as("delta_minutes", "total")],
     )
     total_minutes = flt(totals[0].total) if totals and totals[0].total is not None else 0
 
@@ -542,7 +546,7 @@ def get_overtime_forecast_balance(user, date=None):
     totals = frappe.get_all(
         "Time Tracking Overtime Ledger",
         filters={"user": profile.user},
-        fields=["sum(delta_minutes) as total"],
+        fields=[sum_as("delta_minutes", "total")],
     )
     balance_minutes = flt(totals[0].total) if totals and totals[0].total is not None else 0
     forecast_balance = balance_minutes - current_entry_delta + forecast_delta

@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
+from time_tracking.time_tracking.db_aggregates import sum_as
 from time_tracking.time_tracking.vacation_utils import (
     get_hours_per_vacation_day,
     get_vacation_balance,
@@ -269,7 +270,7 @@ def _get_booking_totals(profile_name, start_date, end_date):
             "time_tracking_profile": profile_name,
             "date": ["between", [start_date, end_date]],
         },
-        fields=["project", "sum(duration_minutes) as total_minutes"],
+        fields=["project", sum_as("duration_minutes", "total_minutes")],
         group_by="project",
     )
     totals_by_project = {}

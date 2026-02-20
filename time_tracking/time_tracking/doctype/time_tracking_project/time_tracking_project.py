@@ -6,6 +6,8 @@ from frappe.model.document import Document
 from frappe.query_builder import DocType
 from frappe.utils import flt
 
+from time_tracking.time_tracking.db_aggregates import sum_as
+
 RATE_BASIS_PROJECT = "Project"
 RATE_BASIS_EMPLOYEE = "Employee"
 
@@ -215,7 +217,7 @@ def _get_leaf_actuals(project):
 	rows = frappe.get_all(
 		"Time Booking",
 		filters={"project": project.name},
-		fields=["time_tracking_profile", "sum(duration_minutes) as total_minutes"],
+		fields=["time_tracking_profile", sum_as("duration_minutes", "total_minutes")],
 		group_by="time_tracking_profile",
 	)
 

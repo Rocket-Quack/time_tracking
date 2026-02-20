@@ -8,6 +8,7 @@ from time_tracking.time_tracking.overtime_utils import (
     get_holiday_dates_for_range,
     get_weekly_forecast,
 )
+from time_tracking.time_tracking.db_aggregates import sum_as
 from time_tracking.time_tracking.vacation_utils import (
     get_hours_per_vacation_day,
     get_vacation_balance,
@@ -45,7 +46,7 @@ def _get_time_booking_minutes(profile_name, start_date, end_date):
             "time_tracking_profile": profile_name,
             "date": ["between", [start_date, end_date]],
         },
-        fields=["sum(duration_minutes) as total"],
+        fields=[sum_as("duration_minutes", "total")],
     )
     if totals and totals[0].total is not None:
         return int(round(flt(totals[0].total)))

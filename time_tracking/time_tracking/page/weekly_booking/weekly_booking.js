@@ -1333,13 +1333,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		const allowance = Number(vacation.allowance_days || 0);
 
 		$vacationRemaining.text(formatVacationDays(remaining));
-		$vacationStatus
-			.text(
-				__("Used {0} of {1} days.", [
-					formatVacationDays(used),
-					formatVacationDays(allowance),
-				])
-			);
+		$vacationStatus.text(
+			__("Used {0} of {1} days.", [formatVacationDays(used), formatVacationDays(allowance)])
+		);
 		setStatusTone($vacationStatus, remaining < 0 ? "negative" : "neutral");
 	}
 

@@ -37,12 +37,12 @@ def _extract_string_value(node: ast.AST) -> str | None:
 
 
 def _iter_fields_literals(fields_node: ast.AST):
-	if isinstance(fields_node, (ast.List, ast.Tuple)):
+	if isinstance(fields_node, ast.List | ast.Tuple):
 		for item in fields_node.elts:
 			text = _extract_string_value(item)
 			if text is not None:
 				yield item, text
-	elif isinstance(fields_node, (ast.Constant, ast.JoinedStr)):
+	elif isinstance(fields_node, ast.Constant | ast.JoinedStr):
 		text = _extract_string_value(fields_node)
 		if text is not None:
 			yield fields_node, text
@@ -85,9 +85,7 @@ def main(argv: list[str]) -> int:
 		except SyntaxError:
 			continue
 		for line, text in violations:
-			errors.append(
-				f"{file_path}:{line}: SQL function string in `fields` is disallowed: {text}"
-			)
+			errors.append(f"{file_path}:{line}: SQL function string in `fields` is disallowed: {text}")
 
 	if errors:
 		print("Found unsupported SQL function string literals in Frappe `fields` clauses:")

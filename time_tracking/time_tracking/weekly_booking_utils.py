@@ -22,8 +22,7 @@ def _build_week_fields(week_start_date):
 	week_end_date = add_days(week_start_date, 6)
 	iso_year, calendar_week, _ = week_start_date.isocalendar()
 	period_label = (
-		f"{formatdate(week_start_date, 'dd.MM.yyyy')} - "
-		f"{formatdate(week_end_date, 'dd.MM.yyyy')}"
+		f"{formatdate(week_start_date, 'dd.MM.yyyy')} - " f"{formatdate(week_end_date, 'dd.MM.yyyy')}"
 	)
 
 	return {

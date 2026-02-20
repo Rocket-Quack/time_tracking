@@ -3,7 +3,6 @@ from pathlib import Path
 
 import frappe
 
-
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 
 

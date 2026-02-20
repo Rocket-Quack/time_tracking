@@ -1,2 +1,1 @@
-frappe.ui.form.on("Time Tracking Profile Project", {
-});
+frappe.ui.form.on("Time Tracking Profile Project", {});

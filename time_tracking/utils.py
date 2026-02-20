@@ -1,6 +1,5 @@
 import frappe
 
-
 DEFAULT_WORKSPACE = "Time Tracking"
 
 

@@ -1,28 +1,9 @@
-name: Manual Build and Push Image
-
-run-name: "Build image ${{ inputs.image_tag }}"
+name: Build and Push Image
 
 on:
-  workflow_dispatch:
-    inputs:
-      image_tag:
-        description: "Docker tag to publish"
-        required: true
-        default: "latest"
-        type: string
-      app_branch:
-        description: "time_tracking app branch"
-        required: true
-        default: "develop"
-        type: string
-      frappe_branch:
-        description: "Frappe branch (auto maps from app_branch)"
-        required: true
-        default: "auto"
-        type: choice
-        options:
-          - auto
-          - version-16
+  push:
+    branches:
+      - version-1
 
 permissions:
   contents: read
@@ -30,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    if: github.ref_name == 'version-1'
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
@@ -42,6 +24,38 @@ jobs:
         shell: bash
         run: |
           echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Read app version
+        id: version
+        shell: bash
+        run: |
+          APP_VERSION="$(python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          tree = ast.parse(Path("time_tracking/__init__.py").read_text(encoding="utf-8"))
+          for node in tree.body:
+            if isinstance(node, ast.Assign):
+              for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__version__":
+                  value = node.value
+                  if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    print(value.value)
+                    raise SystemExit(0)
+          raise SystemExit("Could not read __version__ from time_tracking/__init__.py")
+          PY
+          )"
+
+          # On release branch version-1 we require stable SemVer (no -dev/-rc suffixes).
+          if [[ ! "$APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release version in time_tracking/__init__.py: '$APP_VERSION'"
+            echo "Expected stable SemVer format: X.Y.Z (example: 1.0.0)"
+            exit 1
+          fi
+
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "Using image tags: latest and $APP_VERSION"
 
       - name: Checkout frappe_docker
         uses: actions/checkout@v4
@@ -57,35 +71,13 @@ jobs:
           [
             {
               "url": "https://github.com/${{ github.repository }}",
-              "branch": "${{ inputs.app_branch }}"
+              "branch": "version-1"
             }
           ]
           EOF
 
           APPS_JSON_BASE64="$(base64 -w 0 apps.json 2>/dev/null || base64 apps.json)"
           echo "APPS_JSON_BASE64=$APPS_JSON_BASE64" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve Frappe branch
-        id: runtime
-        shell: bash
-        run: |
-          if [ "${{ inputs.frappe_branch }}" != "auto" ]; then
-            frappe_branch="${{ inputs.frappe_branch }}"
-          else
-            case "${{ inputs.app_branch }}" in
-              develop|version-1)
-                frappe_branch="version-16"
-                ;;
-              *)
-                echo "Cannot infer Frappe branch from app branch '${{ inputs.app_branch }}'."
-                echo "Set input 'frappe_branch' explicitly."
-                exit 1
-                ;;
-            esac
-          fi
-
-          echo "frappe_branch=${frappe_branch}" >> "$GITHUB_OUTPUT"
-          echo "Using FRAPPE_BRANCH=${frappe_branch}"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -94,16 +86,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Ensure version tag does not already exist
+        shell: bash
+        run: |
+          if docker manifest inspect "${{ env.IMAGE }}:${{ steps.version.outputs.app_version }}" >/dev/null 2>&1; then
+            echo "Image tag already exists: ${{ env.IMAGE }}:${{ steps.version.outputs.app_version }}"
+            echo "Bump time_tracking/__init__.py (__version__) before pushing to version-1."
+            exit 1
+          fi
+
       - name: Build image
         run: |
           docker build \
             --build-arg=FRAPPE_PATH=https://github.com/frappe/frappe \
-            --build-arg=FRAPPE_BRANCH=${{ steps.runtime.outputs.frappe_branch }} \
+            --build-arg=FRAPPE_BRANCH=version-16 \
             --build-arg=APPS_JSON_BASE64=${{ steps.prep.outputs.APPS_JSON_BASE64 }} \
-            --tag ${{ env.IMAGE }}:${{ inputs.image_tag }} \
+            --tag ${{ env.IMAGE }}:latest \
+            --tag ${{ env.IMAGE }}:${{ steps.version.outputs.app_version }} \
             --file frappe_docker/images/layered/Containerfile \
             frappe_docker
 
       - name: Push image
         run: |
-          docker push ${{ env.IMAGE }}:${{ inputs.image_tag }}
+          docker push ${{ env.IMAGE }}:latest
+          docker push ${{ env.IMAGE }}:${{ steps.version.outputs.app_version }}

@@ -13,10 +13,9 @@ Teams can record work hours, manage timesheets, generate reports, and export dat
 
 ## Supported Versions
 
-| Frappe | Support Status |
-|-----|----------------|
-| v16 | Coming soon... |
-| v15 | Coming soon... |
+| Frappe Version | Time Tracking Version | Branch | Status |
+|----------------|-----------------------|--------|--------|
+| v16 | v1.x | `version-1` | Supported |
 
 ## Installation (Frappe Cloud)
 
@@ -34,7 +33,13 @@ The app can be installed directly via Frappe Cloud:
 Add the app to your bench environment:
 
 ```bash
-bench get-app https://github.com/Rocket-Quack/time_tracking.git --branch version-15
+bench get-app https://github.com/Rocket-Quack/time_tracking.git --branch version-1
+```
+
+For development/testing with upcoming v1 changes:
+
+```bash
+bench get-app https://github.com/Rocket-Quack/time_tracking.git --branch develop
 ```
 
 Install requirements:
@@ -75,13 +80,13 @@ In your `docker-compose.yml` (based on `frappe/frappe_docker`), point the backen
 ```yaml
 services:
   backend:
-    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+    image: ghcr.io/rocket-quack/time_tracking:v1.0.0
   queue:
-    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+    image: ghcr.io/rocket-quack/time_tracking:v1.0.0
   scheduler:
-    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+    image: ghcr.io/rocket-quack/time_tracking:v1.0.0
   websocket:
-    image: ghcr.io/rocket-quack/time_tracking:15.96.0
+    image: ghcr.io/rocket-quack/time_tracking:v1.0.0
 ```
 
 Keep the remaining services (database, redis, frontend) as in your standard `frappe_docker` compose.

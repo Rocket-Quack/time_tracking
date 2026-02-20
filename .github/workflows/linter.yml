@@ -4,14 +4,12 @@ name: Linters
 on:
   pull_request:
     branches:
-      - version-16
-      - version-15
       - develop
+      - version-1
   push:
     branches:
-      - version-16
-      - version-15
       - develop
+      - version-1
   workflow_dispatch:
 
 permissions:
@@ -40,11 +38,8 @@ jobs:
           fi
 
           case "$target_branch" in
-            version-15)
-              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
-              ;;
-            develop|version-16)
-              echo "python_version=3.12" >> "$GITHUB_OUTPUT"
+            develop|version-1)
+              echo "python_version=3.14" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported target branch: $target_branch"
@@ -86,11 +81,8 @@ jobs:
           fi
 
           case "$target_branch" in
-            version-15)
-              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
-              ;;
-            develop|version-16)
-              echo "python_version=3.12" >> "$GITHUB_OUTPUT"
+            develop|version-1)
+              echo "python_version=3.14" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported target branch: $target_branch"

@@ -4,14 +4,12 @@ name: CI
 on:
   push:
     branches:
-      - version-16
-      - version-15
       - develop
+      - version-1
   pull_request:
     branches:
-      - version-16
-      - version-15
       - develop
+      - version-1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
@@ -56,15 +54,10 @@ jobs:
           fi
 
           case "$target_branch" in
-            version-15)
-              echo "frappe_branch=version-15" >> "$GITHUB_OUTPUT"
-              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
-              echo "node_version=18" >> "$GITHUB_OUTPUT"
-              ;;
-            develop|version-16)
+            develop|version-1)
               echo "frappe_branch=version-16" >> "$GITHUB_OUTPUT"
-              echo "python_version=3.12" >> "$GITHUB_OUTPUT"
-              echo "node_version=20" >> "$GITHUB_OUTPUT"
+              echo "python_version=3.14" >> "$GITHUB_OUTPUT"
+              echo "node_version=24" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "Unsupported target branch: $target_branch"

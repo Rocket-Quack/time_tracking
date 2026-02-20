@@ -22,7 +22,6 @@ on:
         type: choice
         options:
           - auto
-          - version-15
           - version-16
 
 permissions:
@@ -74,10 +73,7 @@ jobs:
             frappe_branch="${{ inputs.frappe_branch }}"
           else
             case "${{ inputs.app_branch }}" in
-              version-15)
-                frappe_branch="version-15"
-                ;;
-              develop|version-16)
+              develop|version-1)
                 frappe_branch="version-16"
                 ;;
               *)

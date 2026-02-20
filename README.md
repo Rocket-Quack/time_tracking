@@ -5,10 +5,14 @@
   <h1>Time Tracking (Frappe App)</h1>
 </div>
 
+<div align="center">
+
 [![CI](https://github.com/Rocket-Quack/time_tracking/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/Rocket-Quack/time_tracking/actions/workflows/ci.yml)
 [![Linter](https://github.com/Rocket-Quack/time_tracking/actions/workflows/linter.yml/badge.svg?branch=develop)](https://github.com/Rocket-Quack/time_tracking/actions/workflows/linter.yml)
 [![Cypress](https://github.com/Rocket-Quack/time_tracking/actions/workflows/cypress.yml/badge.svg?branch=develop)](https://github.com/Rocket-Quack/time_tracking/actions/workflows/cypress.yml)
 [![Docker](https://img.shields.io/badge/GHCR-time_tracking-blue?logo=docker)](https://github.com/Rocket-Quack/time_tracking/pkgs/container/time_tracking)
+
+</div>
 
 Time Tracking is a Frappe app for web-based time tracking and timesheet management.
 

@@ -90,3 +90,26 @@ class TestTimeTrackingProfileAssignments(FrappeTestCase):
         user = self._make_user("adminassign")
         frappe.set_user("Administrator")
         self._make_profile(user, [project])
+
+    def test_profile_insert_creates_opening_ledgers(self):
+        user = self._make_user("openingledger")
+        frappe.set_user("Administrator")
+        profile_name = self._make_profile(user, [])
+
+        overtime_entry = frappe.db.exists(
+            "Time Tracking Overtime Ledger",
+            {
+                "time_tracking_profile": profile_name,
+                "entry_type": "Opening Balance",
+            },
+        )
+        self.assertTrue(overtime_entry)
+
+        vacation_entry = frappe.db.exists(
+            "Time Tracking Vacation Ledger",
+            {
+                "time_tracking_profile": profile_name,
+                "entry_type": "Opening Balance",
+            },
+        )
+        self.assertTrue(vacation_entry)

@@ -70,10 +70,46 @@ frappe.treeview_settings["Time Tracking Project"] = {
 			return;
 		}
 		frappe.dom.set_style(
-			`.tree-link .tt-project-meta { margin-left: 6px; font-size: 11px; color: #6c757d; }
-            .tree-link .tt-status-under { color: #0d6efd; }
-            .tree-link .tt-status-on { color: #28a745; }
-            .tree-link .tt-status-over { color: #dc3545; }
+			`:root {
+                --tt-tree-muted: var(--text-muted, #6c757d);
+                --tt-tree-status-under: #2f80ed;
+                --tt-tree-status-on: #2f9e5f;
+                --tt-tree-status-over: #d64545;
+                --tt-tree-badge-active-text: #1f7d46;
+                --tt-tree-badge-active-bg: #e8f6ef;
+                --tt-tree-badge-active-border: #c6e9d8;
+                --tt-tree-badge-inactive-text: #a94442;
+                --tt-tree-badge-inactive-bg: #f8d7da;
+                --tt-tree-badge-inactive-border: #ebccd1;
+                --tt-tree-badge-booking-on-text: #1f6f2c;
+                --tt-tree-badge-booking-on-bg: #e8f6ef;
+                --tt-tree-badge-booking-on-border: #c6e9d8;
+                --tt-tree-badge-booking-off-text: #a94442;
+                --tt-tree-badge-booking-off-bg: #f2dede;
+                --tt-tree-badge-booking-off-border: #ebccd1;
+            }
+            body[data-theme="dark"] {
+                --tt-tree-muted: #9fb0c2;
+                --tt-tree-status-under: #74b7ff;
+                --tt-tree-status-on: #6fdaa0;
+                --tt-tree-status-over: #ff8f8f;
+                --tt-tree-badge-active-text: #6fdaa0;
+                --tt-tree-badge-active-bg: #1f3b2e;
+                --tt-tree-badge-active-border: #2d5843;
+                --tt-tree-badge-inactive-text: #ff9c9c;
+                --tt-tree-badge-inactive-bg: #4a2a2a;
+                --tt-tree-badge-inactive-border: #704040;
+                --tt-tree-badge-booking-on-text: #8fe3b6;
+                --tt-tree-badge-booking-on-bg: #1f3b2e;
+                --tt-tree-badge-booking-on-border: #2d5843;
+                --tt-tree-badge-booking-off-text: #ffb3b3;
+                --tt-tree-badge-booking-off-bg: #4a2a2a;
+                --tt-tree-badge-booking-off-border: #704040;
+            }
+            .tree-link .tt-project-meta { margin-left: 6px; font-size: 11px; color: var(--tt-tree-muted); }
+            .tree-link .tt-status-under { color: var(--tt-tree-status-under); }
+            .tree-link .tt-status-on { color: var(--tt-tree-status-on); }
+            .tree-link .tt-status-over { color: var(--tt-tree-status-over); }
             .tree-link .tt-status-badge {
                 display: inline-block;
                 padding: 1px 6px;
@@ -83,24 +119,24 @@ frappe.treeview_settings["Time Tracking Project"] = {
                 border: 1px solid transparent;
             }
             .tree-link .tt-status-active {
-                color: #1e7e34;
-                background: #e6f4ea;
-                border-color: #c3e6cb;
+                color: var(--tt-tree-badge-active-text);
+                background: var(--tt-tree-badge-active-bg);
+                border-color: var(--tt-tree-badge-active-border);
             }
             .tree-link .tt-status-inactive {
-                color: #a71d2a;
-                background: #f8d7da;
-                border-color: #f5c6cb;
+                color: var(--tt-tree-badge-inactive-text);
+                background: var(--tt-tree-badge-inactive-bg);
+                border-color: var(--tt-tree-badge-inactive-border);
             }
             .tree-link .tt-booking-on {
-                color: #1f6f2c;
-                background: #e8f6ef;
-                border-color: #c6e9d8;
+                color: var(--tt-tree-badge-booking-on-text);
+                background: var(--tt-tree-badge-booking-on-bg);
+                border-color: var(--tt-tree-badge-booking-on-border);
             }
             .tree-link .tt-booking-off {
-                color: #a94442;
-                background: #f2dede;
-                border-color: #ebccd1;
+                color: var(--tt-tree-badge-booking-off-text);
+                background: var(--tt-tree-badge-booking-off-bg);
+                border-color: var(--tt-tree-badge-booking-off-border);
             }`,
 			"tt-project-tree-style"
 		);

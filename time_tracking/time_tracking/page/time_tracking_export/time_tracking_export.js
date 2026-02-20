@@ -25,11 +25,15 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
                 }
                 .tt-admin-page-shell { width: 100%; }
                 .tt-admin-page-card {
-                    background: var(--fg-color, #ffffff);
+                    background: var(--card-bg, var(--fg-color, #ffffff));
+                    color: var(--text-color, inherit);
                     border: 1px solid var(--border-color, #d1d8dd);
                     border-radius: 14px;
                     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
                     padding: 18px 20px 12px;
+                }
+                .tt-admin-page-card .text-muted {
+                    color: var(--text-muted, #6c757d) !important;
                 }
                 .tt-admin-page-intro { margin-bottom: 12px; }
                 .tt-admin-page-grid { margin-left: -10px; margin-right: -10px; }
@@ -38,6 +42,11 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
                     padding-right: 10px;
                 }
                 .tt-admin-page-card .form-group { margin-bottom: 14px; }
+                body[data-theme="dark"] .tt-admin-page-card {
+                    background: var(--card-bg, var(--fg-color, #1f2731));
+                    border-color: var(--border-color, #3a4758);
+                    box-shadow: none;
+                }
                 @media (max-width: 991px) {
                     .layout-main-section.time-tracking-export,
                     .layout-main-section.time-tracking-import-wizard {

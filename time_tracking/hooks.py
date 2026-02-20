@@ -202,6 +202,11 @@ doc_events = {
 			"time_tracking.time_tracking.vacation_utils.handle_vacation_booking_change",
 		],
 	},
+	"User": {
+		"validate": [
+			"time_tracking.role_hierarchy.enforce_role_hierarchy_on_user",
+		],
+	},
 }
 
 # Scheduled Tasks

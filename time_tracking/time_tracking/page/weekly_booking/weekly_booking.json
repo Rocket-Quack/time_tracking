@@ -20,6 +20,9 @@
    "role": "Time Tracking Admin"
   },
   {
+   "role": "Time Tracking Manager"
+  },
+  {
    "role": "Time Tracking Employee"
   }
  ],

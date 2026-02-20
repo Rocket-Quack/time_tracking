@@ -12,6 +12,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
         <style>
             body[data-route="weekly-booking"] {
                 --tt-wb-muted: var(--text-muted, #6c757d);
+                --tt-wb-header-input-bg: var(--card-bg, var(--fg-color, #ffffff));
+                --tt-wb-header-input-border: var(--border-color, #d1d8dd);
+                --tt-wb-header-input-text: var(--text-color, #1f272e);
+                --tt-wb-header-input-focus: rgba(47, 128, 237, 0.2);
                 --tt-wb-table-foot-bg: var(--fg-color-sm, #f8f9fa);
                 --tt-wb-holiday-bg: var(--fg-color-sm, #f3f5f7);
                 --tt-wb-holiday-overlay: rgba(0, 0, 0, 0.02);
@@ -27,9 +31,15 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 --tt-wb-status-negative: #d64545;
                 --tt-wb-scrollbar-track: var(--surface-gray-2, #f3f3f3);
                 --tt-wb-scrollbar-thumb: var(--surface-gray-4, #d0d0d0);
+                --tt-wb-sticky-col-bg: var(--card-bg, var(--fg-color, #ffffff));
+                --tt-wb-sticky-col-shadow: -8px 0 10px -10px rgba(15, 23, 42, 0.35);
             }
             body[data-theme="dark"][data-route="weekly-booking"] {
                 --tt-wb-muted: #9fb0c2;
+                --tt-wb-header-input-bg: #1f2833;
+                --tt-wb-header-input-border: #3a4a5c;
+                --tt-wb-header-input-text: #dde7f1;
+                --tt-wb-header-input-focus: rgba(91, 163, 246, 0.3);
                 --tt-wb-table-foot-bg: #1f2833;
                 --tt-wb-holiday-bg: #283341;
                 --tt-wb-holiday-overlay: rgba(255, 255, 255, 0.02);
@@ -42,10 +52,41 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 --tt-wb-summary-card-shadow: none;
                 --tt-wb-status-positive: #5fd18f;
                 --tt-wb-status-negative: #ff7f7f;
+                --tt-wb-sticky-col-bg: var(--card-bg, var(--fg-color, #212b36));
+                --tt-wb-sticky-col-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.6);
             }
             body[data-route="weekly-booking"] .layout-main-section { max-width: none; min-width: 0; }
             body[data-route="weekly-booking"] .page-body { padding-left: 12px; padding-right: 12px; }
             .weekly-booking-page { width: 100%; min-width: 0; }
+            .weekly-booking #weekly-booking-header .form-group > label {
+                color: var(--tt-wb-muted);
+            }
+            .weekly-booking #weekly-booking-user,
+            .weekly-booking #weekly-booking-week-start,
+            .weekly-booking #weekly-booking-calendar-week {
+                background: var(--tt-wb-header-input-bg);
+                border: 1px solid var(--tt-wb-header-input-border);
+                color: var(--tt-wb-header-input-text);
+            }
+            .weekly-booking #weekly-booking-user,
+            .weekly-booking #weekly-booking-calendar-week {
+                cursor: default !important;
+            }
+            .weekly-booking #weekly-booking-week-start {
+                cursor: pointer !important;
+            }
+            .weekly-booking #weekly-booking-user.form-control[readonly],
+            .weekly-booking #weekly-booking-week-start.form-control[readonly],
+            .weekly-booking #weekly-booking-calendar-week.form-control[readonly] {
+                -webkit-text-fill-color: var(--tt-wb-header-input-text);
+                opacity: 1;
+            }
+            .weekly-booking #weekly-booking-user:focus,
+            .weekly-booking #weekly-booking-week-start:focus,
+            .weekly-booking #weekly-booking-calendar-week:focus {
+                border-color: var(--tt-wb-header-input-border);
+                box-shadow: 0 0 0 2px var(--tt-wb-header-input-focus);
+            }
             .weekly-booking .weekly-booking-tableWrap {
                 width: 100%;
                 max-width: 100%;
@@ -211,6 +252,29 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             .weekly-booking .wb-status-neutral { color: var(--tt-wb-muted); }
             .weekly-booking .wb-status-positive { color: var(--tt-wb-status-positive); }
             .weekly-booking .wb-status-negative { color: var(--tt-wb-status-negative); }
+            @media (max-width: 1199px) {
+                .weekly-booking .weekly-booking-table thead .wb-actions-col {
+                    position: sticky;
+                    right: 0;
+                    z-index: 6;
+                    background: var(--tt-wb-sticky-col-bg);
+                    box-shadow: var(--tt-wb-sticky-col-shadow);
+                }
+                .weekly-booking .weekly-booking-table tbody .wb-actions-cell {
+                    position: sticky;
+                    right: 0;
+                    z-index: 5;
+                    background: var(--tt-wb-sticky-col-bg);
+                    box-shadow: var(--tt-wb-sticky-col-shadow);
+                }
+                .weekly-booking .weekly-booking-table tfoot td:last-child {
+                    position: sticky;
+                    right: 0;
+                    z-index: 4;
+                    background: var(--tt-wb-table-foot-bg);
+                    box-shadow: var(--tt-wb-sticky-col-shadow);
+                }
+            }
         </style>
     `;
 	$(styles).appendTo(page.body);

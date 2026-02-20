@@ -1,0 +1,125 @@
+name: Guard Scripts
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - version-15
+      - version-16
+  push:
+    branches:
+      - develop
+      - version-15
+      - version-16
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guard-scripts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard-scripts:
+    name: Check guard scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve runtime requirements
+        id: runtime
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            target_branch="${{ github.event.pull_request.base.ref }}"
+          else
+            target_branch="${{ github.ref_name }}"
+          fi
+
+          case "$target_branch" in
+            version-15)
+              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
+              ;;
+            develop|version-16)
+              echo "python_version=3.11" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported target branch: $target_branch"
+              exit 1
+              ;;
+          esac
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.runtime.outputs.python_version }}
+
+      - name: Run guard scripts
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          mapfile -t guard_scripts < <(find scripts -maxdepth 1 -type f -name 'check_*.py' | sort)
+
+          {
+            echo "## Guard Scripts Report"
+            echo
+            echo "| Script | Status |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${#guard_scripts[@]}" -eq 0 ]; then
+            echo "| _(none found)_ | n/a |" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          failed=0
+          details_file="$(mktemp)"
+
+          for script in "${guard_scripts[@]}"; do
+            echo "::group::${script}"
+            output_file="$(mktemp)"
+            if python "$script" >"$output_file" 2>&1; then
+              echo "PASS: ${script}"
+              echo "| \`${script}\` | PASS |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              failed=$((failed + 1))
+              echo "FAIL: ${script}"
+              echo "| \`${script}\` | FAIL |" >> "$GITHUB_STEP_SUMMARY"
+
+              while IFS= read -r line; do
+                if [[ "$line" =~ ^([^:]+):([0-9]+):[[:space:]](.*)$ ]]; then
+                  echo "::error file=${BASH_REMATCH[1]},line=${BASH_REMATCH[2]}::${BASH_REMATCH[3]}"
+                fi
+              done < "$output_file"
+
+              {
+                echo "<details>"
+                echo "<summary><code>${script}</code> output</summary>"
+                echo
+                echo '```text'
+                cat "$output_file"
+                echo '```'
+                echo "</details>"
+                echo
+              } >> "$details_file"
+            fi
+
+            cat "$output_file"
+            rm -f "$output_file"
+            echo "::endgroup::"
+          done
+
+          if [ "$failed" -gt 0 ]; then
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo "### Failure details" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            cat "$details_file" >> "$GITHUB_STEP_SUMMARY"
+            rm -f "$details_file"
+            exit 1
+          fi
+
+          rm -f "$details_file"

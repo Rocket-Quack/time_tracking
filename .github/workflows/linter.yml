@@ -3,6 +3,15 @@ name: Linters
 
 on:
   pull_request:
+    branches:
+      - version-16
+      - version-15
+      - develop
+  push:
+    branches:
+      - version-16
+      - version-15
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -16,13 +25,36 @@ jobs:
   linter:
     name: 'Frappe Linter'
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve runtime requirements
+        id: runtime
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            target_branch="${{ github.event.pull_request.base.ref }}"
+          else
+            target_branch="${{ github.ref_name }}"
+          fi
+
+          case "$target_branch" in
+            version-15)
+              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
+              ;;
+            develop|version-16)
+              echo "python_version=3.11" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported target branch: $target_branch"
+              exit 1
+              ;;
+          esac
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ steps.runtime.outputs.python_version }}
           cache: pip
       - uses: pre-commit/action@v3.0.0
 
@@ -32,16 +64,43 @@ jobs:
       - name: Run Semgrep rules
         run: |
           pip install semgrep
-          semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            semgrep ci --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+          else
+            semgrep scan --config ./frappe-semgrep-rules/rules --config r/python.lang.correctness
+          fi
 
   deps-vulnerable-check:
     name: 'Vulnerable Dependency Check'
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve runtime requirements
+        id: runtime
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            target_branch="${{ github.event.pull_request.base.ref }}"
+          else
+            target_branch="${{ github.ref_name }}"
+          fi
+
+          case "$target_branch" in
+            version-15)
+              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
+              ;;
+            develop|version-16)
+              echo "python_version=3.11" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported target branch: $target_branch"
+              exit 1
+              ;;
+          esac
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ steps.runtime.outputs.python_version }}
 
       - uses: actions/checkout@v4
 
@@ -49,9 +108,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py') }}
+          key: ${{ runner.os }}-pip-py${{ steps.runtime.outputs.python_version }}-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-py${{ steps.runtime.outputs.python_version }}-
             ${{ runner.os }}-
 
       - name: Install and run pip-audit

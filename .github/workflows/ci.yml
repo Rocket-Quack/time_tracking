@@ -4,15 +4,17 @@ name: CI
 on:
   push:
     branches:
+      - version-16
       - version-15
       - develop
   pull_request:
     branches:
+      - version-16
       - version-15
       - develop
 
 concurrency:
-  group: develop-time_tracking-${{ github.event.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -43,6 +45,33 @@ jobs:
       - name: Clone
         uses: actions/checkout@v3
 
+      - name: Resolve runtime requirements
+        id: runtime
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            target_branch="${{ github.event.pull_request.base.ref }}"
+          else
+            target_branch="${{ github.ref_name }}"
+          fi
+
+          case "$target_branch" in
+            version-15)
+              echo "frappe_branch=version-15" >> "$GITHUB_OUTPUT"
+              echo "python_version=3.10" >> "$GITHUB_OUTPUT"
+              echo "node_version=18" >> "$GITHUB_OUTPUT"
+              ;;
+            develop|version-16)
+              echo "frappe_branch=version-16" >> "$GITHUB_OUTPUT"
+              echo "python_version=3.11" >> "$GITHUB_OUTPUT"
+              echo "node_version=20" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported target branch: $target_branch"
+              exit 1
+              ;;
+          esac
+
       - name: Find tests
         run: |
           echo "Finding tests"
@@ -51,21 +80,21 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: ${{ steps.runtime.outputs.python_version }}
 
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: ${{ steps.runtime.outputs.node_version }}
           check-latest: true
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
+          key: ${{ runner.os }}-pip-${{ steps.runtime.outputs.frappe_branch }}-py${{ steps.runtime.outputs.python_version }}-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-${{ steps.runtime.outputs.frappe_branch }}-py${{ steps.runtime.outputs.python_version }}-
             ${{ runner.os }}-
 
       - name: Get yarn cache directory path
@@ -76,9 +105,9 @@ jobs:
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-node${{ steps.runtime.outputs.node_version }}-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ runner.os }}-yarn-node${{ steps.runtime.outputs.node_version }}-
 
       - name: Update Package Repository
         run: sudo apt update
@@ -89,7 +118,7 @@ jobs:
       - name: Setup
         run: |
           pip install frappe-bench
-          bench init --frappe-branch version-15 --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          bench init --frappe-branch ${{ steps.runtime.outputs.frappe_branch }} --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 

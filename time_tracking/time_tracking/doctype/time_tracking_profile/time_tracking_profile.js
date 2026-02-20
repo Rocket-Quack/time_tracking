@@ -320,8 +320,7 @@ function openUserProfile(frm) {
 	if (!frm.doc.user) {
 		return;
 	}
-	const url = `/app/user/${encodeURIComponent(frm.doc.user)}`;
-	window.open(url, "_blank");
+	frappe.set_route("Form", "User", frm.doc.user);
 }
 
 function addProfileLinks(frm) {

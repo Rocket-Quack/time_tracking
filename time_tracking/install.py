@@ -211,11 +211,46 @@ def _sync_time_tracking_sidebar():
 	sidebar.save(ignore_permissions=True)
 
 
+def _ensure_time_tracking_app_icon_internal_route():
+	icon_name = frappe.db.get_value(
+		"Desktop Icon",
+		{
+			"icon_type": "App",
+			"app": "time_tracking",
+		},
+		"name",
+	)
+	if not icon_name:
+		return
+
+	icon = frappe.get_doc("Desktop Icon", icon_name)
+	updated = False
+
+	if icon.link_type != "Workspace Sidebar":
+		icon.link_type = "Workspace Sidebar"
+		updated = True
+	if icon.link_to != "Time Tracking":
+		icon.link_to = "Time Tracking"
+		updated = True
+	if icon.link:
+		icon.link = ""
+		updated = True
+	if icon.hidden:
+		icon.hidden = 0
+		updated = True
+
+	if updated:
+		icon.save(ignore_permissions=True)
+		frappe.cache.delete_key("desktop_icons")
+		frappe.cache.delete_key("bootinfo")
+
+
 def after_install():
 	from time_tracking.role_hierarchy import backfill_time_tracking_role_hierarchy
 
 	_sync_primary_workspace_fixtures()
 	_sync_time_tracking_sidebar()
+	_ensure_time_tracking_app_icon_internal_route()
 	backfill_time_tracking_role_hierarchy()
 
 
@@ -224,4 +259,5 @@ def after_migrate():
 
 	_sync_primary_workspace_fixtures()
 	_sync_time_tracking_sidebar()
+	_ensure_time_tracking_app_icon_internal_route()
 	backfill_time_tracking_role_hierarchy()

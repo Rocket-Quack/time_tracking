@@ -6,8 +6,7 @@ function addTimeTrackingProfileLink(frm, profileName) {
 	frm.add_custom_button(
 		__("Open Time Tracking Profile"),
 		() => {
-			const url = `/app/time-tracking-profile/${encodeURIComponent(profileName)}`;
-			window.open(url, "_blank");
+			frappe.set_route("Form", "Time Tracking Profile", profileName);
 		},
 		__("Links")
 	);

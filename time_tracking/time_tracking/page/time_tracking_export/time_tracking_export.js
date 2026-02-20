@@ -36,8 +36,20 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
             fieldtype: "Select",
             fieldname: "date_format",
             label: __("Date Format"),
-            options: ["DD.MM.YYYY", "YYYY-MM-DD"].join("\n"),
+            options: ["DD.MM.YYYY", "YYYY-MM-DD", "DDMMYYYY", "YYYYMMDD"].join("\n"),
             default: "DD.MM.YYYY",
+            reqd: 1,
+        },
+        {
+            fieldtype: "Select",
+            fieldname: "duration_format",
+            label: __("Duration Format"),
+            options: [
+                "Decimal Hours (e.g. 1.25)",
+                "HH:MM (e.g. 1:15)",
+                "Minutes (e.g. 75)",
+            ].join("\n"),
+            default: "Decimal Hours (e.g. 1.25)",
             reqd: 1,
         },
         {
@@ -85,7 +97,7 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
 
     fieldDefs.forEach((df) => {
         const parent =
-            ["export_format", "date_format", "decimal_separator", "from_date"].includes(
+            ["export_format", "date_format", "duration_format", "decimal_separator", "from_date"].includes(
                 df.fieldname
             )
                 ? $left
@@ -99,6 +111,20 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
         control.refresh();
         controls[df.fieldname] = control;
     });
+
+    const updateDurationControls = () => {
+        if (!controls.duration_format || !controls.decimal_separator) {
+            return;
+        }
+        const selectedFormat = controls.duration_format.get_value() || "";
+        const isDecimal = selectedFormat.startsWith("Decimal Hours");
+        $(controls.decimal_separator.wrapper).toggle(isDecimal);
+    };
+
+    if (controls.duration_format && controls.duration_format.$input) {
+        controls.duration_format.$input.on("change", updateDurationControls);
+    }
+    updateDurationControls();
 
     if (controls.project) {
         controls.project.get_query = function () {
@@ -116,6 +142,7 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
         const args = {
             export_format: controls.export_format.get_value(),
             date_format: controls.date_format.get_value(),
+            duration_format: controls.duration_format.get_value(),
             decimal_separator: controls.decimal_separator.get_value(),
             from_date: controls.from_date.get_value(),
             to_date: controls.to_date.get_value(),

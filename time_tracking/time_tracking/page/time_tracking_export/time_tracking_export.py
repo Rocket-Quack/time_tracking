@@ -60,9 +60,13 @@ def _get_project_names(project, include_children):
 
 def _get_date_formatter(date_format):
     fmt = (date_format or "DD.MM.YYYY").strip().upper()
-    if fmt == "YYYY-MM-DD":
-        return "%Y-%m-%d"
-    return "%d.%m.%Y"
+    format_map = {
+        "DD.MM.YYYY": "%d.%m.%Y",
+        "YYYY-MM-DD": "%Y-%m-%d",
+        "DDMMYYYY": "%d%m%Y",
+        "YYYYMMDD": "%Y%m%d",
+    }
+    return format_map.get(fmt, "%d.%m.%Y")
 
 
 def _format_decimal(value, separator):
@@ -70,6 +74,43 @@ def _format_decimal(value, separator):
     if separator == ",":
         return hours.replace(".", ",")
     return hours
+
+
+def _get_duration_format(duration_format):
+    raw = (duration_format or "Decimal Hours").strip()
+    fmt = raw.split("(", 1)[0].strip().upper()
+    if fmt in {"HH:MMH", "HH:MM"}:
+        return "HH:MMH"
+    if fmt in {"MINUTES", "MINUTES (TOTAL)"}:
+        return "MINUTES"
+    return "DECIMAL_HOURS"
+
+
+def _get_duration_column_label(duration_format):
+    if duration_format == "HH:MMH":
+        return _("Duration (HH:MM)")
+    if duration_format == "MINUTES":
+        return _("Duration (Minutes)")
+    return _("Hours")
+
+
+def _format_duration(duration_minutes, duration_format, export_format, separator):
+    total_minutes = int(round(duration_minutes or 0))
+
+    if duration_format == "MINUTES":
+        return total_minutes
+
+    if duration_format == "HH:MMH":
+        sign = "-" if total_minutes < 0 else ""
+        absolute_minutes = abs(total_minutes)
+        hours = absolute_minutes // 60
+        minutes = absolute_minutes % 60
+        return f"{sign}{hours}:{minutes:02d}"
+
+    hours_value = total_minutes / 60
+    if export_format == "XLSX" and separator == ".":
+        return round(hours_value, 2)
+    return _format_decimal(hours_value, separator)
 
 
 @frappe.whitelist()
@@ -82,6 +123,7 @@ def export_bookings(
     user=None,
     date_format="DD.MM.YYYY",
     decimal_separator=".",
+    duration_format="Decimal Hours",
 ):
     if not _is_admin():
         frappe.throw(_("Not permitted."))
@@ -126,13 +168,14 @@ def export_bookings(
 
     date_fmt = _get_date_formatter(date_format)
     separator = "," if decimal_separator == "," else "."
+    duration_format_key = _get_duration_format(duration_format)
 
     columns = [
         _("Date"),
         _("Employee"),
         _("Project"),
         _("Comment"),
-        _("Hours"),
+        _get_duration_column_label(duration_format_key),
     ]
     data = []
 
@@ -140,19 +183,20 @@ def export_bookings(
         date_value = row.date.strftime(date_fmt) if row.date else ""
         employee = row.employee_name or row.user or ""
         project_label = project_paths.get(row.project, row.project or "")
-        hours_value = (row.duration_minutes or 0) / 60
-        if export_format == "XLSX" and separator == ".":
-            hours_display = round(hours_value, 2)
-        else:
-            hours_display = _format_decimal(hours_value, separator)
+        hours_display = _format_duration(
+            row.duration_minutes, duration_format_key, export_format, separator
+        )
 
         data.append([date_value, employee, project_label, row.note or "", hours_display])
 
     if export_format == "XLSX":
         output = make_xlsx([columns] + data, _("Time Tracking Export"))
+        content = output.getvalue() if hasattr(output, "getvalue") else output
+        if isinstance(content, str):
+            content = content.encode("utf-8")
         filename = f"time-tracking-export-{start_date}-{end_date}.xlsx"
         frappe.response["filename"] = filename
-        frappe.response["filecontent"] = output
+        frappe.response["filecontent"] = content
         frappe.response["type"] = "binary"
         return
 
@@ -160,7 +204,7 @@ def export_bookings(
     writer = csv.writer(buffer)
     writer.writerow(columns)
     writer.writerows(data)
-    content = buffer.getvalue()
+    content = buffer.getvalue().encode("utf-8")
 
     filename = f"time-tracking-export-{start_date}-{end_date}.csv"
     frappe.response["filename"] = filename

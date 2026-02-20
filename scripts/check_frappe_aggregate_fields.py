@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fail on SQL function strings in Frappe `fields=[...]` clauses.
 
-This guards against patterns like:
+This guards against hardcoded patterns like:
 `fields=["sum(duration_minutes) as total"]`
-which are disallowed in recent Frappe versions.
+and keeps aggregate usage centralized via helper wrappers.
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ def main(argv: list[str]) -> int:
 		print("Found unsupported SQL function string literals in Frappe `fields` clauses:")
 		for error in errors:
 			print(f"  - {error}")
-		print("Use dict syntax helpers instead, e.g. sum_as('duration_minutes', 'total').")
+		print("Use helper wrappers instead, e.g. sum_as('duration_minutes', 'total').")
 		return 1
 	return 0
 

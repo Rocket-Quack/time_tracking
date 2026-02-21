@@ -55,9 +55,13 @@ describe("Users - create time tracking user", () => {
 
 		cy.visit("/desk/user");
 
-		cy.contains("#page-List\\/User\\/List a, #page-List\\/User\\/List .list-row-container", firstName)
-			.should("be.visible");
-		cy.contains("#page-List\\/User\\/List a, #page-List\\/User\\/List .list-row-container", email)
-			.should("be.visible");
+		cy.contains(
+			"#page-List\\/User\\/List a, #page-List\\/User\\/List .list-row-container",
+			firstName
+		).should("be.visible");
+		cy.contains(
+			"#page-List\\/User\\/List a, #page-List\\/User\\/List .list-row-container",
+			email
+		).should("be.visible");
 	});
 });

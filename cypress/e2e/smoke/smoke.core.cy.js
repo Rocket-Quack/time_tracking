@@ -13,7 +13,10 @@ describe("Smoke: Core Application", () => {
 		const { user, password } = getAdministratorCredentials();
 
 		cy.visit("/login");
-		cy.get("#login_email, input[name='login_email']").first().clear().type(user, { log: false });
+		cy.get("#login_email, input[name='login_email']")
+			.first()
+			.clear()
+			.type(user, { log: false });
 		cy.get("#login_password, input[name='login_password']").first().clear().type(password, {
 			log: false,
 		});

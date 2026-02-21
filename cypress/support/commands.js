@@ -17,15 +17,17 @@ Cypress.Commands.add("loginByApiSession", () => {
 });
 
 Cypress.Commands.add("deleteUserByEmail", (email) => {
-	return cy.request({
-		method: "POST",
-		url: "/api/method/frappe.client.delete",
-		body: {
-			doctype: "User",
-			name: email,
-		},
-		failOnStatusCode: false,
-	}).then((resp) => {
-		expect([200, 404, 417]).to.include(resp.status);
-	});
+	return cy
+		.request({
+			method: "POST",
+			url: "/api/method/frappe.client.delete",
+			body: {
+				doctype: "User",
+				name: email,
+			},
+			failOnStatusCode: false,
+		})
+		.then((resp) => {
+			expect([200, 404, 417]).to.include(resp.status);
+		});
 });

@@ -31,3 +31,15 @@ Cypress.Commands.add("deleteUserByEmail", (email) => {
 			expect([200, 404, 417]).to.include(resp.status);
 		});
 });
+
+Cypress.Commands.add("ensureFrappeReady", () => {
+	cy.loginByApiSession();
+	cy.visit("/app");
+
+	cy.location("pathname").should((pathname) => {
+		expect(pathname).to.not.include("setup-wizard");
+		expect(pathname).to.match(/^\/(desk|app)(\/.*)?$/);
+	});
+	cy.getCookie("sid").should("exist");
+	cy.get("body").should("be.visible");
+});

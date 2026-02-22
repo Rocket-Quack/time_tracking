@@ -108,6 +108,7 @@ jobs:
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app time_tracking
+          bash $GITHUB_WORKSPACE/scripts/complete_setup_wizard.sh --bench-root /home/runner/frappe-bench --site test_site
           bench build
 
       - name: Start Frappe web server

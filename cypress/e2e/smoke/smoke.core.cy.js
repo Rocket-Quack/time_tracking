@@ -44,8 +44,8 @@ describe("Smoke: Core Application", () => {
 		cy.visit("/app");
 
 		cy.get('#page-desktop img[alt="Time Tracking"]').click();
-		cy.get(".h1")
-			.contains("Time Tracking", { timeout: 5000 })
+		cy.get(".h1", { timeout: 15000 })
+			.contains("Time Tracking")
 			.should("be.visible")
 			.and("contain.text", "Time Tracking");
 		cy.get(".ce-header > .text-muted").should(

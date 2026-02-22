@@ -43,11 +43,34 @@ describe("Smoke: Core Application", () => {
 		cy.loginByApiSession();
 		cy.visit("/app");
 
-		cy.get('[data-id="Time Tracking"] > .icon-caption > .icon-title').click();
+		const workspacePathPattern =
+			/^\/(desk\/time-tracking|app\/time-tracking|app\/workspace\/time-tracking)(\/.*)?$/;
+
+		cy.location("pathname", { timeout: 15000 }).then((pathname) => {
+			if (!workspacePathPattern.test(pathname)) {
+				cy.get(
+					'#page-desktop img[alt="Time Tracking"], #page-desktop [data-original-title="Time Tracking"], #page-desktop [data-id="Time Tracking"]',
+					{ timeout: 15000 }
+				)
+					.first()
+					.should("be.visible")
+					.scrollIntoView()
+					.click({ force: true });
+			}
+		});
+
+		cy.location("pathname", { timeout: 15000 }).then((pathname) => {
+			if (!workspacePathPattern.test(pathname)) {
+				cy.get('[data-id="Time Tracking"] > .icon-caption > .icon-title', {
+					timeout: 15000,
+				})
+					.first()
+					.should("be.visible")
+					.click({ force: true });
+			}
+		});
 		cy.location("pathname", { timeout: 15000 }).should((pathname) => {
-			expect(pathname).to.match(
-				/^\/(desk\/time-tracking|app\/time-tracking|app\/workspace\/time-tracking)(\/.*)?$/
-			);
+			expect(pathname).to.match(workspacePathPattern);
 		});
 		cy.contains("body", "Time Tracking", { timeout: 15000 });
 

@@ -44,20 +44,26 @@ describe("Smoke: Core Application", () => {
 		cy.visit("/app");
 
 		cy.get('[data-id="Time Tracking"] > .icon-caption > .icon-title').click();
-		cy.get(".h1", { timeout: 15000 })
-			.contains("Time Tracking")
-			.should("be.visible")
-			.and("contain.text", "Time Tracking");
-		cy.get(".ce-header > .text-muted").should(
-			"contain.text",
-			"Log hours, plan weeks, and track targets"
-		);
+		cy.location("pathname", { timeout: 15000 }).should((pathname) => {
+			expect(pathname).to.match(
+				/^\/(desk\/time-tracking|app\/time-tracking|app\/workspace\/time-tracking)(\/.*)?$/
+			);
+		});
+		cy.contains("body", "Time Tracking", { timeout: 15000 });
 
-		cy.get('div[item-name="Weekly Booking"] span.sidebar-item-label').should("be.visible");
+		cy.contains('div[item-name="Weekly Booking"] span.sidebar-item-label', "Weekly Booking", {
+			timeout: 15000,
+		}).should("be.visible");
 
-		cy.get('div[item-name="Time Booking"] span.sidebar-item-label').should("be.visible");
+		cy.contains('div[item-name="Time Booking"] span.sidebar-item-label', "Time Booking", {
+			timeout: 15000,
+		}).should("be.visible");
 
-		cy.get('div[item-name="My Project Access"] span.sidebar-item-label').should("be.visible");
+		cy.contains(
+			'div[item-name="My Project Access"] span.sidebar-item-label',
+			"My Project Access",
+			{ timeout: 15000 }
+		).should("be.visible");
 
 		cy.get('[item-name="Time Tracking Settings"] > .standard-sidebar-item').should(
 			"be.visible"

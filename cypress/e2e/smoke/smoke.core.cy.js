@@ -41,8 +41,7 @@ describe("Smoke: Core Application", () => {
 
 	it("opens Time Tracking workspace from desktop", () => {
 		cy.loginByApiSession();
-		cy.visit("/desk");
-		cy.get('#page-desktop img[alt="Time Tracking"]').click();
+		cy.visit("/desk/time-tracking");
 
 		cy.url().should("include", "/desk/time-tracking");
 

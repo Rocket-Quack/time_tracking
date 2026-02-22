@@ -44,14 +44,26 @@ describe("Smoke: Core Application", () => {
 		cy.visit("/app");
 
 		cy.get('#page-desktop img[alt="Time Tracking"]').click();
-		cy.get("#editorjs span.h1").should("be.visible").and("have.text", "Time Tracking");
-		cy.get("#editorjs div.text-muted").should(
-			"have.text",
+
+		cy.location("pathname", { timeout: 15000 }).should((pathname) => {
+			expect(pathname).to.match(
+				/^\/(desk\/time-tracking|app\/time-tracking|app\/workspace\/time-tracking)(\/.*)?$/
+			);
+		});
+		cy.get(".h1")
+			.contains("Time Tracking", { timeout: 5000 })
+			.should("be.visible")
+			.and("contain.text", "Time Tracking");
+		cy.get(".ce-header > .text-muted").should(
+			"contain.text",
 			"Log hours, plan weeks, and track targets"
 		);
 
 		cy.get('div[item-name="Weekly Booking"] span.sidebar-item-label').should("be.visible");
 		cy.get('div[item-name="Time Booking"] span.sidebar-item-label').should("be.visible");
 		cy.get('div[item-name="My Project Access"] span.sidebar-item-label').should("be.visible");
+		cy.get('[item-name="Time Tracking Settings"] > .standard-sidebar-item').should(
+			"be.visable"
+		);
 	});
 });

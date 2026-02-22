@@ -41,55 +41,17 @@ describe("Smoke: Core Application", () => {
 
 	it("opens Time Tracking workspace from desktop", () => {
 		cy.loginByApiSession();
-		cy.visit("/app");
+		cy.visit("/desk");
+		cy.get('#page-desktop img[alt="Time Tracking"]').click();
 
-		const workspacePathPattern =
-			/^\/(desk\/time-tracking|app\/time-tracking|app\/workspace\/time-tracking)(\/.*)?$/;
+		cy.url().should("include", "/desk/time-tracking");
 
-		cy.location("pathname", { timeout: 15000 }).then((pathname) => {
-			if (!workspacePathPattern.test(pathname)) {
-				cy.get(
-					'#page-desktop img[alt="Time Tracking"], #page-desktop [data-original-title="Time Tracking"], #page-desktop [data-id="Time Tracking"]',
-					{ timeout: 15000 }
-				)
-					.first()
-					.should("be.visible")
-					.scrollIntoView()
-					.click({ force: true });
-			}
-		});
-
-		cy.location("pathname", { timeout: 15000 }).then((pathname) => {
-			if (!workspacePathPattern.test(pathname)) {
-				cy.get('[data-id="Time Tracking"] > .icon-caption > .icon-title', {
-					timeout: 15000,
-				})
-					.first()
-					.should("be.visible")
-					.click({ force: true });
-			}
-		});
-		cy.location("pathname", { timeout: 15000 }).should((pathname) => {
-			expect(pathname).to.match(workspacePathPattern);
-		});
-		cy.contains("body", "Time Tracking", { timeout: 15000 });
-
-		cy.contains('div[item-name="Weekly Booking"] span.sidebar-item-label', "Weekly Booking", {
-			timeout: 15000,
-		}).should("be.visible");
-
-		cy.contains('div[item-name="Time Booking"] span.sidebar-item-label', "Time Booking", {
-			timeout: 15000,
-		}).should("be.visible");
-
-		cy.contains(
-			'div[item-name="My Project Access"] span.sidebar-item-label',
-			"My Project Access",
-			{ timeout: 15000 }
-		).should("be.visible");
-
-		cy.get('[item-name="Time Tracking Settings"] > .standard-sidebar-item').should(
-			"be.visible"
+		cy.get(
+			'#editorjs a[href="/desk/time-tracking-settings/Time Tracking Settings"] span.link-text'
+		).click();
+		cy.get("#page-Time\\ Tracking\\ Settings li.disabled").should(
+			"have.text",
+			"Time Tracking Settings"
 		);
 	});
 });

@@ -29,11 +29,15 @@ BUDGET_STATUS_OVER = "Over Budget"
 
 
 class TimeTrackingProject(Document):
-	def autoname(self):
-		if self.name:
+	def before_naming(self):
+		if not self.name:
 			return
-		# Use UUID without hyphens for stable external references (e.g. imports).
-		self.name = uuid.uuid4().hex
+		try:
+			uuid.UUID(str(self.name))
+		except (TypeError, ValueError, AttributeError):
+			# Desk creates temporary names like `new-time-tracking-project-...`.
+			# For UUID doctypes, these must be cleared so Frappe can assign a real UUID.
+			self.name = None
 
 	def validate(self):
 		self._ensure_project_status()
@@ -450,7 +454,13 @@ def recalculate_all_project_metrics():
 @frappe.whitelist()
 def get_project_tree_nodes(doctype, parent="", **filters):
 	parent_field = "parent_" + frappe.scrub(doctype)
-	tree_filters = [[f"ifnull(`{parent_field}`,'')", "=", parent], ["docstatus", "<", 2]]
+	tree_filters = [["docstatus", "<", 2]]
+	or_filters = None
+
+	if parent:
+		tree_filters.append([parent_field, "=", parent])
+	else:
+		or_filters = [[parent_field, "is", "not set"], [parent_field, "=", ""]]
 
 	rows = frappe.get_list(
 		doctype,
@@ -469,6 +479,7 @@ def get_project_tree_nodes(doctype, parent="", **filters):
 			"total_budget_amount",
 		],
 		filters=tree_filters,
+		or_filters=or_filters,
 		order_by="name",
 	)
 

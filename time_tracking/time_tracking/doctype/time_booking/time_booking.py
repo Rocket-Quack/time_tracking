@@ -20,11 +20,15 @@ from time_tracking.time_tracking.vacation_utils import (
 
 
 class TimeBooking(Document):
-	def autoname(self):
-		if self.name:
+	def before_naming(self):
+		if not self.name:
 			return
-		# Use UUID without hyphens for stable external references (e.g. imports).
-		self.name = uuid.uuid4().hex
+		try:
+			uuid.UUID(str(self.name))
+		except (TypeError, ValueError, AttributeError):
+			# Desk creates temporary names like `new-time-booking-...`.
+			# For UUID doctypes, these must be cleared so Frappe can assign a real UUID.
+			self.name = None
 
 	def before_insert(self):
 		self._set_booking_code()

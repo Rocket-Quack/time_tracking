@@ -1,6 +1,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today
+from uuid import UUID
 
 
 class TestTimeTrackingProject(FrappeTestCase):
@@ -29,3 +30,17 @@ class TestTimeTrackingProject(FrappeTestCase):
 
 		with self.assertRaises(Exception):
 			self._make_project(child_name, parent=parent.name)
+
+	def test_temporary_frontend_name_is_replaced_with_uuid(self):
+		doc = frappe.get_doc(
+			{
+				"doctype": "Time Tracking Project",
+				"name": "new-time-tracking-project-gsdzaapdej",
+				"project_name": self._unique("UI Project"),
+			}
+		)
+		doc.insert(ignore_permissions=True)
+
+		self.assertNotEqual(doc.name, "new-time-tracking-project-gsdzaapdej")
+		self.assertFalse(doc.name.startswith("new-time-tracking-project-"))
+		UUID(doc.name)

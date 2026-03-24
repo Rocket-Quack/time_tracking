@@ -3,7 +3,8 @@
 
 This guards against hardcoded patterns like:
 `fields=["sum(duration_minutes) as total"]`
-and keeps aggregate usage centralized via helper wrappers.
+and keeps aggregate usage centralized via helper wrappers that return
+Frappe's dict syntax, e.g. `{"SUM": "duration_minutes", "as": "total"}`.
 """
 
 from __future__ import annotations
@@ -91,7 +92,7 @@ def main(argv: list[str]) -> int:
 		print("Found unsupported SQL function string literals in Frappe `fields` clauses:")
 		for error in errors:
 			print(f"  - {error}")
-		print("Use helper wrappers instead, e.g. sum_as('duration_minutes', 'total').")
+		print("Use Frappe aggregate dict syntax, e.g. {'SUM': 'duration_minutes', 'as': 'total'}.")
 		return 1
 	return 0
 

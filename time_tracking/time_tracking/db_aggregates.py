@@ -1,8 +1,8 @@
-"""Helpers for safe aggregate field expressions.
+"""Helpers for Frappe aggregate field expressions.
 
-These helpers intentionally avoid hardcoded SQL aggregate literals at
-callsites while still returning values that `frappe.get_all/get_list`
-accept across supported framework versions.
+Frappe v16 no longer accepts SQL function strings like
+``sum(duration_minutes) as total`` in ``fields=[...]``. These helpers
+return the dict form expected by the query engine instead.
 """
 
 
@@ -12,7 +12,7 @@ def aggregate_as(function_name, fieldname, alias):
 	as_alias = (alias or "").strip()
 	if not fn or not field or not as_alias:
 		raise ValueError("aggregate_as requires function_name, fieldname and alias")
-	return f"{fn}({field}) as {as_alias}"
+	return {fn.upper(): field, "as": as_alias}
 
 
 def sum_as(fieldname, alias):

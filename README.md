@@ -104,7 +104,7 @@ See the Frappe Docker compose documentation:
 
 ## Community Support
 
-Please create a ticket via [Issues](https://github.com/Rocket-Quack/erpnext_sumup/issues) for:
+Please create a ticket via [Issues](https://github.com/Rocket-Quack/time_tracking/issues) for:
 
 - **Bug Reports & Feature Requests**
 - **Questions about general use**

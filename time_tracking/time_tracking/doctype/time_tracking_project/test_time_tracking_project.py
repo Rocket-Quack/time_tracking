@@ -1,7 +1,8 @@
+from uuid import UUID
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today
-from uuid import UUID
 
 
 class TestTimeTrackingProject(FrappeTestCase):

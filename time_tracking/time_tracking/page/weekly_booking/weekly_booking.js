@@ -68,6 +68,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 border: 1px solid var(--tt-wb-header-input-border);
                 color: var(--tt-wb-header-input-text);
             }
+            .weekly-booking #weekly-booking-header .input-group > * {
+                margin-right: 0;
+            }
             .weekly-booking #weekly-booking-user,
             .weekly-booking #weekly-booking-calendar-week {
                 cursor: default !important;

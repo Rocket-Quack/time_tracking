@@ -34,7 +34,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 --tt-wb-sticky-col-bg: var(--card-bg, var(--fg-color, #ffffff));
                 --tt-wb-sticky-col-shadow: -8px 0 10px -10px rgba(15, 23, 42, 0.35);
             }
-            body[data-theme="dark"][data-route="weekly-booking"] {
+            [data-theme="dark"] .weekly-booking-page {
                 --tt-wb-muted: #9fb0c2;
                 --tt-wb-header-input-bg: #1f2833;
                 --tt-wb-header-input-border: #3a4a5c;

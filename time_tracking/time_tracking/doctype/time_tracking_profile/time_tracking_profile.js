@@ -344,6 +344,13 @@ frappe.ui.form.on("Time Tracking Profile", {
 			};
 		}
 	},
+	after_save(frm) {
+		window.dispatchEvent(
+			new CustomEvent("time-tracking:assigned-projects-changed", {
+				detail: { user: frm.doc.user || null },
+			})
+		);
+	},
 	refresh(frm) {
 		frm.clear_custom_buttons();
 		addTargetButtons(frm);

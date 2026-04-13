@@ -548,6 +548,20 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		return options.join("");
 	}
 
+	function refreshProjectSelectOptions() {
+		getDataRows().each(function () {
+			const $project = $(this).find(".wb-project");
+			if (!$project.length) {
+				return;
+			}
+			const selectedProject = $project.val() || "";
+			$project.html(buildProjectOptions(selectedProject));
+			if (selectedProject) {
+				$project.val(selectedProject);
+			}
+		});
+	}
+
 	function isRowFilled($row) {
 		const project = $row.find(".wb-project").val();
 		if (project) {
@@ -906,8 +920,18 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		applyRowHighlights();
 	}
 
-	function loadProjects(callback) {
+	function loadProjects(options = {}) {
+		const callback = typeof options === "function" ? options : options.callback;
+		const forceReload = Boolean(
+			options && typeof options === "object" && options.force_reload
+		);
 		if (state.profile_missing_handled) {
+			return;
+		}
+		if (state.projects_loaded && !forceReload) {
+			if (callback) {
+				callback();
+			}
 			return;
 		}
 		frappe.call({
@@ -924,6 +948,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 				const projects = Array.isArray(message) ? message : message.projects || [];
 				state.projects = projects;
 				state.projects_loaded = true;
+				refreshProjectSelectOptions();
 				$addRowButton.prop("disabled", false);
 				if (callback) {
 					callback();
@@ -933,6 +958,16 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 				handleProfileMissingError(error);
 			},
 		});
+	}
+
+	function invalidateAssignedProjects(changedUser) {
+		if (changedUser && changedUser !== $user.val()) {
+			return;
+		}
+		state.projects_loaded = false;
+		if (document.body && document.body.dataset.route === "weekly-booking") {
+			loadProjects({ force_reload: true });
+		}
 	}
 
 	function setIncrementMinutes(value) {
@@ -1418,6 +1453,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 						indicator: "orange",
 					});
 				}
+
+				window.dispatchEvent(new CustomEvent("time-tracking:summary-refresh"));
 			},
 		});
 	}
@@ -1488,6 +1525,11 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		updateTotals();
 	});
 
+	window.addEventListener("time-tracking:assigned-projects-changed", function (event) {
+		const detail = (event && event.detail) || {};
+		invalidateAssignedProjects(detail.user);
+	});
+
 	$addRowButton.prop("disabled", true);
 	loadProjects();
 	renderRows([]);
@@ -1497,4 +1539,19 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		.startOf("isoWeek")
 		.format("YYYY-MM-DD");
 	setWeekStart(currentWeekStart);
+
+	wrapper.__tt_weekly_booking = {
+		has_been_shown: false,
+		on_page_show() {
+			if (!this.has_been_shown) {
+				this.has_been_shown = true;
+				return;
+			}
+			invalidateAssignedProjects();
+		},
+	};
+};
+
+frappe.pages["weekly-booking"].on_page_show = function (wrapper) {
+	wrapper.__tt_weekly_booking?.on_page_show?.();
 };

@@ -28,7 +28,7 @@ add_to_apps_screen = [
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/time_tracking/css/time_tracking.css"
-# app_include_js = "/assets/time_tracking/js/time_tracking.js"
+app_include_js = "/assets/time_tracking/js/time_tracking_desk.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/time_tracking/css/time_tracking.css"

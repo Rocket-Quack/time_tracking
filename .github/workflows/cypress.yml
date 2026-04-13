@@ -72,13 +72,13 @@ jobs:
           python-version: ${{ steps.runtime.outputs.python_version }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ steps.runtime.outputs.node_version }}
           check-latest: true
 
       - name: Cache pip
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-cypress-${{ steps.runtime.outputs.frappe_branch }}-py${{ steps.runtime.outputs.python_version }}-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
@@ -149,7 +149,7 @@ jobs:
 
       - name: Upload Cypress artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cypress-artifacts-${{ github.run_id }}
           path: |

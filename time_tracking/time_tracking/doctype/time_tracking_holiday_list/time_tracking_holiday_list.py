@@ -4,6 +4,8 @@ from frappe.integrations.utils import make_get_request
 from frappe.model.document import Document
 from frappe.utils import cint, getdate
 
+from time_tracking.time_tracking.vacation_utils import get_expected_holiday_list_name
+
 
 class TimeTrackingHolidayList(Document):
 	def autoname(self):
@@ -26,7 +28,7 @@ class TimeTrackingHolidayList(Document):
 		year = cint(self.year)
 		if not year:
 			return
-		expected_name = f"{year}-Holiday-List"
+		expected_name = get_expected_holiday_list_name(year)
 		if set_docname:
 			self.name = expected_name
 		if self.name and self.name != expected_name:

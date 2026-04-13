@@ -15,6 +15,13 @@ PERIOD_MONTH = "Month"
 PERIOD_RANGE = "Range"
 
 
+def _is_admin(user=None):
+	if not user:
+		user = frappe.session.user
+	roles = frappe.get_roles(user)
+	return "System Manager" in roles or "Time Tracking Admin" in roles
+
+
 def _get_period_range(filters):
 	period = (filters or {}).get("period") or PERIOD_MONTH
 	period = period.strip()
@@ -110,6 +117,8 @@ def execute(filters=None):
 	include_children = flt(filters.get("include_child_projects")) == 1
 	project_names = _get_project_names(project, include_children)
 	user_filter = (filters.get("user") or "").strip()
+	if not _is_admin():
+		user_filter = frappe.session.user
 
 	tb = DocType("Time Booking")
 	ttp = DocType("Time Tracking Profile")

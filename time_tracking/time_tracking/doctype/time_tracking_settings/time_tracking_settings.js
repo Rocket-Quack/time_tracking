@@ -1,3 +1,82 @@
+const HOLIDAY_LIST_STATUS_METHOD =
+	"time_tracking.time_tracking.doctype.time_tracking_settings.time_tracking_settings.get_current_year_holiday_list_status";
+const HOLIDAY_LIST_DOCTYPE = "Time Tracking Holiday List";
+
+function isSettingsAdmin() {
+	return frappe.user.has_role("System Manager") || frappe.user.has_role("Time Tracking Admin");
+}
+
+function getCurrentYearHolidayListStatus() {
+	return frappe
+		.call({
+			method: HOLIDAY_LIST_STATUS_METHOD,
+		})
+		.then((response) => response.message || {});
+}
+
+function openMissingHolidayListDialog(status) {
+	const year = status.year;
+	const expectedName = frappe.utils.escape_html(String(status.expected_name || ""));
+	const dialog = new frappe.ui.Dialog({
+		title: __("Holiday List Required"),
+		fields: [
+			{
+				fieldtype: "HTML",
+				fieldname: "message",
+			},
+		],
+		primary_action_label: __("Create Holiday List"),
+		primary_action() {
+			dialog.hide();
+			frappe.route_options = { year: String(year) };
+			frappe.new_doc(HOLIDAY_LIST_DOCTYPE);
+		},
+	});
+
+	dialog.fields_dict.message.$wrapper.html(`
+		<div class="small text-muted">
+			<p>
+				<strong>${__("Holiday List Required")}</strong><br>
+				${__("To enable Holidays, create the Holiday List for {0} first.", [year])}<br>
+				${__("Expected name")}: <code>${expectedName}</code>
+			</p>
+		</div>
+	`);
+	dialog.show();
+}
+
+function handleHolidayToggle(frm) {
+	if (!isSettingsAdmin() || !frm.doc.enable_holiday_list || frm.__holiday_list_toggle_guard) {
+		return;
+	}
+
+	getCurrentYearHolidayListStatus()
+		.then((status) => {
+			if (Number(status.exists) === 1) {
+				return;
+			}
+
+			frm.__holiday_list_toggle_guard = true;
+			Promise.resolve(frm.set_value("enable_holiday_list", 0)).then(() => {
+				frm.__holiday_list_toggle_guard = false;
+				openMissingHolidayListDialog(status);
+			});
+		})
+		.catch(() => {
+			frm.__holiday_list_toggle_guard = true;
+			Promise.resolve(frm.set_value("enable_holiday_list", 0)).finally(() => {
+				frm.__holiday_list_toggle_guard = false;
+				frappe.msgprint({
+					title: __("Holiday Validation Failed"),
+					message: __(
+						"Unable to verify the Holiday List for the current year. Please try again."
+					),
+					indicator: "red",
+				});
+			});
+		});
+}
+
 frappe.ui.form.on("Time Tracking Settings", {
 	refresh(frm) {
 		const helpContent = {
@@ -216,5 +295,8 @@ frappe.ui.form.on("Time Tracking Settings", {
 			},
 			__("Actions")
 		);
+	},
+	enable_holiday_list(frm) {
+		handleHolidayToggle(frm);
 	},
 });

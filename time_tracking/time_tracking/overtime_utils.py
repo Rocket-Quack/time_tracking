@@ -7,11 +7,11 @@ from frappe.utils import add_days, cint, flt, getdate, now_datetime, nowdate
 from time_tracking.time_tracking.db_aggregates import max_as, min_as, sum_as
 from time_tracking.time_tracking.vacation_utils import (
 	WEEKS_PER_MONTH,
-	get_expected_holiday_list_name,
 	get_holidays_enabled,
 	get_hours_per_vacation_day,
 	get_sickness_project,
 	get_vacation_project,
+	require_holiday_list_for_year,
 )
 
 ENTRY_TYPE_PERIOD = "Period"
@@ -232,13 +232,7 @@ def _get_holiday_dates(start_date, end_date):
 	dates = set()
 
 	for year in years:
-		expected_name = get_expected_holiday_list_name(year)
-		if not expected_name:
-			continue
-
-		exists = frappe.db.exists("Time Tracking Holiday List", {"name": expected_name, "year": year})
-		if not exists:
-			frappe.throw(_("Holiday List for {0} must be named {1}.").format(year, expected_name))
+		expected_name = require_holiday_list_for_year(year)
 
 		holidays = frappe.get_all(
 			"Time Tracking Holiday",

@@ -211,16 +211,40 @@ def get_expected_holiday_list_name(year):
 	return f"{year}-{HOLIDAY_LIST_SUFFIX}"
 
 
+def get_holiday_list_status_for_year(year):
+	year = cint(year)
+	expected_name = get_expected_holiday_list_name(year)
+	exists = False
+	if expected_name:
+		exists = bool(
+			frappe.db.exists(
+				"Time Tracking Holiday List",
+				{"name": expected_name, "year": year},
+			)
+		)
+	return {
+		"year": year,
+		"expected_name": expected_name,
+		"exists": exists,
+	}
+
+
+def require_holiday_list_for_year(year):
+	status = get_holiday_list_status_for_year(year)
+	if not status.get("expected_name") or not status.get("exists"):
+		frappe.throw(
+			_("Holiday List for {0} must be named {1}.").format(
+				status.get("year"),
+				status.get("expected_name"),
+			)
+		)
+	return status.get("expected_name")
+
+
 def get_holiday_list_for_range(start_date, end_date):
 	year = getdate(start_date).year
-	expected_name = get_expected_holiday_list_name(year)
-	if not expected_name:
-		return None
-	exists = frappe.db.exists(
-		"Time Tracking Holiday List",
-		{"name": expected_name, "year": year},
-	)
-	return expected_name if exists else None
+	status = get_holiday_list_status_for_year(year)
+	return status.get("expected_name") if status.get("exists") else None
 
 
 def get_holiday_list_for_date(date):
@@ -234,12 +258,7 @@ def validate_holiday_list_for_date(date):
 	if not get_holidays_enabled():
 		return None
 
-	holiday_list = get_holiday_list_for_date(date)
-	if not holiday_list:
-		year = getdate(date).year
-		expected_name = get_expected_holiday_list_name(year)
-		frappe.throw(_("Holiday List for {0} must be named {1}.").format(year, expected_name))
-	return holiday_list
+	return require_holiday_list_for_year(getdate(date).year)
 
 
 def get_hours_per_vacation_day(profile):

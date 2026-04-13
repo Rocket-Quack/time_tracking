@@ -7,14 +7,13 @@ from frappe.utils import add_days, cint, flt, getdate, nowdate
 from time_tracking.time_tracking.db_aggregates import sum_as
 from time_tracking.time_tracking.overtime_utils import get_overtime_carryover_minutes
 from time_tracking.time_tracking.vacation_utils import (
-	get_expected_holiday_list_name,
-	get_holiday_list_for_range,
 	get_holidays_enabled,
 	get_hours_per_vacation_day,
 	get_sickness_project,
 	get_vacation_balance,
 	get_vacation_carryover_days,
 	get_vacation_project,
+	require_holiday_list_for_year,
 )
 
 
@@ -212,10 +211,7 @@ def execute(filters=None):
 	rows = []
 	for month in range(1, 13):
 		start_date, end_date = _get_month_range(year, month)
-		holiday_list = get_holiday_list_for_range(start_date, end_date)
-		if holidays_enabled and not holiday_list:
-			expected_name = get_expected_holiday_list_name(start_date.year)
-			frappe.throw(_("Holiday List for {0} must be named {1}.").format(start_date.year, expected_name))
+		holiday_list = require_holiday_list_for_year(start_date.year) if holidays_enabled else None
 
 		holiday_dates = _get_holiday_dates(holiday_list, start_date, end_date)
 		holiday_count = len(holiday_dates) if holidays_enabled else 0

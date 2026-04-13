@@ -4,6 +4,10 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today
 
+from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
+	update_project_metrics,
+)
+
 
 class TestTimeTrackingProject(FrappeTestCase):
 	def setUp(self):
@@ -23,6 +27,36 @@ class TestTimeTrackingProject(FrappeTestCase):
 		)
 		doc.insert(ignore_permissions=True)
 		return doc
+
+	def _make_user(self, prefix):
+		email = f"{prefix}-{frappe.generate_hash(length=8)}@example.com"
+		user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": email,
+				"first_name": "Test",
+				"last_name": prefix,
+				"enabled": 1,
+				"user_type": "System User",
+			}
+		).insert(ignore_permissions=True)
+		user.add_roles("Time Tracking Employee")
+		return user.name
+
+	def _make_profile(self, user):
+		return (
+			frappe.get_doc(
+				{
+					"doctype": "Time Tracking Profile",
+					"user": user,
+					"target_period": "Weekly",
+					"weekly_target_hours": 40,
+					"workdays_per_week": 5,
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+		)
 
 	def test_project_name_duplicate_fails(self):
 		parent = self._make_project(self._unique("Parent"), is_group=1)
@@ -45,3 +79,32 @@ class TestTimeTrackingProject(FrappeTestCase):
 		self.assertNotEqual(doc.name, "new-time-tracking-project-gsdzaapdej")
 		self.assertFalse(doc.name.startswith("new-time-tracking-project-"))
 		UUID(doc.name)
+
+	def test_unbillable_time_counts_hours_but_not_revenue(self):
+		user = self._make_user("metrics")
+		self._make_profile(user)
+		project = self._make_project(self._unique("Metrics"))
+		project.bill_rate = 100
+		project.pay_rate = 50
+		project.pay_rate_source = "Project"
+		project.save(ignore_permissions=True)
+
+		for bill_type in ("Billable", "Unbillable"):
+			frappe.get_doc(
+				{
+					"doctype": "Time Booking",
+					"time_tracking_profile": user,
+					"date": today(),
+					"project": project.name,
+					"bill_type": bill_type,
+					"duration_minutes": 60,
+					"notes": f"{bill_type} booking",
+				}
+			).insert(ignore_permissions=True)
+
+		update_project_metrics(project.name)
+		project.reload()
+
+		self.assertEqual(project.actual_hours, 2)
+		self.assertEqual(project.actual_amount, 100)
+		self.assertEqual(project.actual_pay_amount, 100)

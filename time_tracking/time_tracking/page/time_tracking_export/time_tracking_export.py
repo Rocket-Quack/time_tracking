@@ -7,6 +7,7 @@ from frappe.query_builder import DocType
 from frappe.utils import cint, getdate
 from frappe.utils.xlsxutils import make_xlsx
 
+from time_tracking.time_tracking.bill_types import get_bill_type_label
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	build_project_path_labels,
 )
@@ -149,6 +150,7 @@ def export_bookings(
 			usr.full_name.as_("employee_name"),
 			tb.project.as_("project"),
 			tb.notes.as_("note"),
+			tb.bill_type.as_("bill_type"),
 			tb.duration_minutes.as_("duration_minutes"),
 		)
 		.where(tb.date.between(start_date, end_date))
@@ -174,6 +176,7 @@ def export_bookings(
 		_("Date"),
 		_("Employee"),
 		_("Project"),
+		_("Bill Type"),
 		_("Comment"),
 		_get_duration_column_label(duration_format_key),
 	]
@@ -183,9 +186,10 @@ def export_bookings(
 		date_value = row.date.strftime(date_fmt) if row.date else ""
 		employee = row.employee_name or row.user or ""
 		project_label = project_paths.get(row.project, row.project or "")
+		bill_type = get_bill_type_label(row.bill_type)
 		hours_display = _format_duration(row.duration_minutes, duration_format_key, export_format, separator)
 
-		data.append([date_value, employee, project_label, row.note or "", hours_display])
+		data.append([date_value, employee, project_label, bill_type, row.note or "", hours_display])
 
 	if export_format == "XLSX":
 		output = make_xlsx([columns, *data], _("Time Tracking Export"))

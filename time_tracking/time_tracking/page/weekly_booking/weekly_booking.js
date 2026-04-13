@@ -29,6 +29,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 --tt-wb-summary-card-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
                 --tt-wb-status-positive: #2f9e5f;
                 --tt-wb-status-negative: #d64545;
+                --tt-wb-bill-type-active: #b7791f;
+                --tt-wb-bill-type-active-bg: rgba(183, 121, 31, 0.14);
                 --tt-wb-scrollbar-track: var(--surface-gray-2, #f3f3f3);
                 --tt-wb-scrollbar-thumb: var(--surface-gray-4, #d0d0d0);
                 --tt-wb-sticky-col-bg: var(--card-bg, var(--fg-color, #ffffff));
@@ -52,6 +54,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 --tt-wb-summary-card-shadow: none;
                 --tt-wb-status-positive: #5fd18f;
                 --tt-wb-status-negative: #ff7f7f;
+                --tt-wb-bill-type-active: #f3c969;
+                --tt-wb-bill-type-active-bg: rgba(243, 201, 105, 0.18);
                 --tt-wb-sticky-col-bg: var(--card-bg, var(--fg-color, #212b36));
                 --tt-wb-sticky-col-shadow: -8px 0 12px -10px rgba(0, 0, 0, 0.6);
             }
@@ -125,7 +129,41 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
             }
             .weekly-booking .weekly-booking-table td { overflow: visible; }
             .weekly-booking .wb-project-col { min-width: 240px; }
+            .weekly-booking .wb-bill-type-col { min-width: 56px; width: 56px; text-align: center; }
             .weekly-booking .wb-note-col { min-width: 240px; }
+            .weekly-booking .wb-bill-type-cell { text-align: center; }
+            .weekly-booking .wb-bill-type-toggle {
+                width: 32px;
+                height: 32px;
+                padding: 0;
+                color: var(--tt-wb-muted);
+            }
+            .weekly-booking .wb-bill-type-icon {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 16px;
+                height: 16px;
+            }
+            .weekly-booking .wb-bill-type-icon::after {
+                content: "";
+                position: absolute;
+                width: 2px;
+                height: 18px;
+                background: currentColor;
+                border-radius: 999px;
+                transform: rotate(45deg) scaleY(0);
+                transition: transform 0.15s ease;
+            }
+            .weekly-booking .wb-bill-type-toggle.is-unbillable {
+                color: var(--tt-wb-bill-type-active);
+                background: var(--tt-wb-bill-type-active-bg);
+                border-color: transparent;
+            }
+            .weekly-booking .wb-bill-type-toggle.is-unbillable .wb-bill-type-icon::after {
+                transform: rotate(45deg) scaleY(1);
+            }
             .weekly-booking .wb-day-header { text-align: center; min-width: 140px; }
             .weekly-booking .wb-day-name { font-weight: 600; }
             .weekly-booking .wb-day-date { font-size: 11px; color: var(--tt-wb-muted); }
@@ -217,7 +255,21 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 font-size: 12px;
                 color: var(--tt-wb-muted);
             }
-            .weekly-booking tfoot td { background: var(--tt-wb-table-foot-bg); }
+            .weekly-booking .weekly-booking-table > tfoot,
+            .weekly-booking .weekly-booking-table > tfoot > tr,
+            .weekly-booking .weekly-booking-table > tfoot > tr > td {
+                --bs-table-bg: var(--tt-wb-table-foot-bg);
+                --bs-table-accent-bg: var(--tt-wb-table-foot-bg);
+                --bs-table-striped-bg: var(--tt-wb-table-foot-bg);
+                --bs-table-hover-bg: var(--tt-wb-table-foot-bg);
+                background: var(--tt-wb-table-foot-bg);
+                background-color: var(--tt-wb-table-foot-bg) !important;
+                background-image: none !important;
+                color: var(--tt-wb-header-input-text);
+            }
+            .weekly-booking .weekly-booking-table > tfoot > tr > td {
+                box-shadow: inset 0 0 0 9999px var(--tt-wb-table-foot-bg) !important;
+            }
             .weekly-booking .wb-week-total { text-align: right; }
             .weekly-booking .wb-note { min-width: 220px; }
             .weekly-booking .wb-project { min-width: 220px; }
@@ -317,6 +369,12 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 <thead>
                     <tr>
                         <th class="wb-project-col">${__("Project")}</th>
+                        <th class="wb-bill-type-col" title="${__(
+							"Toggle between Billable and Unbillable for the whole row."
+						)}">
+                            <span>${__("Type")}</span>
+                            <i class="fa fa-info-circle text-muted"></i>
+                        </th>
                         <th class="wb-note-col">${__("Note")}</th>
                         <th class="wb-day-header" data-day="0">
                             <div class="wb-day-name">${__("Mon")}</div>
@@ -353,6 +411,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
                 <tfoot>
                     <tr>
                         <td><strong>${__("Total")}</strong></td>
+                        <td></td>
                         <td></td>
                         <td class="weekly-booking-total" data-field="monday_hours">0</td>
                         <td class="weekly-booking-total" data-field="tuesday_hours">0</td>
@@ -438,7 +497,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 	const $vacationRemaining = $summary.find("#weekly-booking-vacation-remaining");
 	const $vacationStatus = $summary.find("#weekly-booking-vacation-status");
 
-	const dividerColspan = 2 + 7 + 1;
+	const dividerColspan = 3 + 7 + 1;
 	const hourFields = [
 		{ field: "monday_hours", class: "wb-mon" },
 		{ field: "tuesday_hours", class: "wb-tue" },
@@ -451,6 +510,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
 	const profileMissingTitle = __("Time Tracking Profile Required");
 	const profileMissingMessage = __("Time Tracking Profile is required.");
+	const BILL_TYPE_BILLABLE = "Billable";
+	const BILL_TYPE_UNBILLABLE = "Unbillable";
 
 	function isTimeTrackingAdmin() {
 		const roles = frappe.user_roles || [];
@@ -548,6 +609,57 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		return options.join("");
 	}
 
+	function normalizeBillType(value) {
+		return value === BILL_TYPE_UNBILLABLE ? BILL_TYPE_UNBILLABLE : BILL_TYPE_BILLABLE;
+	}
+
+	function getBillTypeLabel(billType) {
+		return normalizeBillType(billType) === BILL_TYPE_UNBILLABLE
+			? __("Unbillable")
+			: __("Billable");
+	}
+
+	function applyBillTypeState($button, billType) {
+		const normalized = normalizeBillType(billType);
+		const isUnbillable = normalized === BILL_TYPE_UNBILLABLE;
+		$button.attr("data-bill-type", normalized);
+		$button.attr("aria-pressed", isUnbillable ? "true" : "false");
+		$button.attr("title", getBillTypeLabel(normalized));
+		$button.toggleClass("is-unbillable", isUnbillable);
+	}
+
+	function buildBillTypeButton(billType) {
+		const normalized = normalizeBillType(billType);
+		const isUnbillable = normalized === BILL_TYPE_UNBILLABLE;
+		const tooltip =
+			normalized === BILL_TYPE_UNBILLABLE
+				? __("Unbillable. Click to switch to Billable.")
+				: __("Billable. Click to switch to Unbillable.");
+		return `
+            <button
+                type="button"
+                class="btn btn-default btn-sm wb-bill-type-toggle${
+					isUnbillable ? " is-unbillable" : ""
+				}"
+                data-bill-type="${normalized}"
+                aria-pressed="${isUnbillable ? "true" : "false"}"
+                title="${frappe.utils.escape_html(tooltip)}"
+            >
+                <span class="wb-bill-type-icon">
+                    <i class="fa fa-money"></i>
+                </span>
+                <span class="sr-only">${frappe.utils.escape_html(
+					getBillTypeLabel(normalized)
+				)}</span>
+            </button>
+        `;
+	}
+
+	function getRowBillType($row) {
+		const $button = $row.find(".wb-bill-type-toggle");
+		return normalizeBillType($button.attr("data-bill-type"));
+	}
+
 	function refreshProjectSelectOptions() {
 		getDataRows().each(function () {
 			const $project = $(this).find(".wb-project");
@@ -581,8 +693,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		return hasHours;
 	}
 
-	function buildRowSignature(project, note, minutesByField) {
-		const parts = [project || "", note || ""];
+	function buildRowSignature(project, note, billType, minutesByField) {
+		const parts = [project || "", note || "", normalizeBillType(billType)];
 		hourFields.forEach((field) => {
 			parts.push(String(minutesByField[field.field] || 0));
 		});
@@ -590,7 +702,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 	}
 
 	function buildSuggestionKey(row) {
-		return `${row.project || ""}||${(row.note || "").trim()}`;
+		return `${row.project || ""}||${(row.note || "").trim()}||${normalizeBillType(
+			row.bill_type
+		)}`;
 	}
 
 	function buildSuggestionRows(previousRows, currentRows) {
@@ -606,15 +720,16 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		(previousRows || []).forEach((row) => {
 			const project = row.project || "";
 			const note = (row.note || "").trim();
+			const billType = normalizeBillType(row.bill_type);
 			if (!project && !note) {
 				return;
 			}
-			const key = `${project}||${note}`;
+			const key = `${project}||${note}||${billType}`;
 			if (currentKeys.has(key) || seen.has(key)) {
 				return;
 			}
 			seen.add(key);
-			suggestions.push({ project, note });
+			suggestions.push({ project, note, bill_type: billType });
 		});
 		return suggestions;
 	}
@@ -643,7 +758,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		});
 		const project = $row.find(".wb-project").val() || "";
 		const note = ($row.find(".wb-note").val() || "").trim();
-		return buildRowSignature(project, note, minutesByField);
+		return buildRowSignature(project, note, getRowBillType($row), minutesByField);
 	}
 
 	function buildSignatureFromData(row) {
@@ -653,7 +768,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		});
 		const project = row.project || "";
 		const note = (row.note || "").trim();
-		return buildRowSignature(project, note, minutesByField);
+		return buildRowSignature(project, note, row.bill_type, minutesByField);
 	}
 
 	function isRowDataEmpty(row) {
@@ -842,6 +957,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
 	function addRow(row = {}, options = {}) {
 		const { skipTotals = false, rowType = "data" } = options;
+		const billType = normalizeBillType(row.bill_type);
 		const deleteCellHtml =
 			rowType === "suggestion"
 				? ""
@@ -851,6 +967,9 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		const $row = $(
 			`<tr>
                 <td class="wb-project-col"><select class="form-control wb-project"></select></td>
+                <td class="wb-bill-type-col wb-bill-type-cell">${buildBillTypeButton(
+					billType
+				)}</td>
                 <td class="wb-note-col"><input type="text" class="form-control wb-note"></td>
                 <td>${buildTimeCell("wb-mon")}</td>
                 <td>${buildTimeCell("wb-tue")}</td>
@@ -873,6 +992,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		}
 
 		$row.find(".wb-project").html(buildProjectOptions(row.project));
+		applyBillTypeState($row.find(".wb-bill-type-toggle"), billType);
 		$row.find(".wb-note").val(row.note || "");
 
 		hourFields.forEach((field) => {
@@ -1133,6 +1253,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 			}
 			const rowData = {
 				project: $row.find(".wb-project").val(),
+				bill_type: getRowBillType($row),
 				note: $row.find(".wb-note").val(),
 			};
 
@@ -1490,6 +1611,15 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		applyRowHighlights();
 	});
 	$rows.on("change input", ".wb-project, .wb-note", function () {
+		applyRowHighlights();
+	});
+	$rows.on("click", ".wb-bill-type-toggle", function () {
+		const $button = $(this);
+		const nextType =
+			normalizeBillType($button.attr("data-bill-type")) === BILL_TYPE_UNBILLABLE
+				? BILL_TYPE_BILLABLE
+				: BILL_TYPE_UNBILLABLE;
+		applyBillTypeState($button, nextType);
 		applyRowHighlights();
 	});
 	$rows.on("keydown", ".wb-hours", function (event) {

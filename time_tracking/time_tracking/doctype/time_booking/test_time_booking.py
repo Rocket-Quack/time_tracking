@@ -7,6 +7,7 @@ class TestTimeBooking(FrappeTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
 		frappe.db.set_single_value("Time Tracking Settings", "require_project_assignment", 0)
+		frappe.db.set_single_value("Time Tracking Settings", "enable_holiday_list", 0)
 
 	def _unique_email(self, prefix):
 		return f"{prefix}-{frappe.generate_hash(length=8)}@example.com"
@@ -105,3 +106,23 @@ class TestTimeBooking(FrappeTestCase):
 			}
 		)
 		booking.insert(ignore_permissions=True)
+
+	def test_bill_type_defaults_to_billable(self):
+		user = self._make_user("bill-type")
+		project = self._make_project(f"BillableDefault-{frappe.generate_hash(length=6)}")
+		self._make_profile(user, project)
+
+		frappe.set_user(user)
+		booking = frappe.get_doc(
+			{
+				"doctype": "Time Booking",
+				"time_tracking_profile": user,
+				"date": today(),
+				"project": project,
+				"duration_minutes": 60,
+				"notes": "Default bill type booking",
+			}
+		)
+		booking.insert(ignore_permissions=True)
+
+		self.assertEqual(booking.bill_type, "Billable")

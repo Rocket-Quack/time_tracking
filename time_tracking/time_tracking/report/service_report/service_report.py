@@ -5,6 +5,7 @@ from frappe import _
 from frappe.query_builder import DocType
 from frappe.utils import add_days, flt, getdate, nowdate
 
+from time_tracking.time_tracking.bill_types import get_bill_type_label
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	build_project_path_labels,
 )
@@ -101,6 +102,12 @@ def _get_columns():
 			"width": 260,
 		},
 		{
+			"label": _("Bill Type"),
+			"fieldname": "bill_type",
+			"fieldtype": "Data",
+			"width": 120,
+		},
+		{
 			"label": _("Hours"),
 			"fieldname": "hours",
 			"fieldtype": "Float",
@@ -132,6 +139,7 @@ def execute(filters=None):
 			ttp.user.as_("user"),
 			tb.project.as_("project"),
 			tb.notes.as_("note"),
+			tb.bill_type.as_("bill_type"),
 			tb.duration_minutes.as_("duration_minutes"),
 		)
 		.where(tb.date.between(start_date, end_date))
@@ -158,6 +166,7 @@ def execute(filters=None):
 				"project": row.project,
 				"project_label": path_labels.get(row.project, row.project or ""),
 				"note": row.note,
+				"bill_type": get_bill_type_label(row.bill_type),
 				"hours": flt(row.duration_minutes) / 60,
 			}
 		)

@@ -6,6 +6,10 @@ from frappe.model.document import Document
 from frappe.model.naming import make_autoname
 from frappe.utils import flt, nowdate
 
+from time_tracking.time_tracking.bill_types import (
+	BILL_TYPES,
+	normalize_bill_type,
+)
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	expand_project_assignments,
 )
@@ -35,7 +39,9 @@ class TimeBooking(Document):
 
 	def validate(self):
 		self._set_default_profile()
+		self._set_default_bill_type()
 		self._validate_profile_permission()
+		self._validate_bill_type()
 		self._validate_project()
 		self._validate_notes()
 		self._validate_duration_increment()
@@ -52,6 +58,13 @@ class TimeBooking(Document):
 
 	def _get_profile_name(self):
 		return self.time_tracking_profile
+
+	def _set_default_bill_type(self):
+		self.bill_type = normalize_bill_type(self.bill_type)
+
+	def _validate_bill_type(self):
+		if self.bill_type not in BILL_TYPES:
+			frappe.throw(_("Bill Type must be Billable or Unbillable."))
 
 	def _get_assigned_project_names(self):
 		profile_name = self._get_profile_name()

@@ -71,6 +71,7 @@ class TestServiceReport(FrappeTestCase):
 				"time_tracking_profile": user,
 				"date": today(),
 				"project": project,
+				"bill_type": "Unbillable" if "Foreign" in note else "Billable",
 				"duration_minutes": 60,
 				"notes": note,
 			}
@@ -86,6 +87,7 @@ class TestServiceReport(FrappeTestCase):
 		self.assertEqual(len(rows), 1)
 		self.assertEqual(rows[0]["user"], self.user_a)
 		self.assertEqual(rows[0]["note"], "Own booking")
+		self.assertEqual(rows[0]["bill_type"], "Billable")
 
 	def test_admin_can_filter_other_user(self):
 		frappe.set_user("Administrator")
@@ -96,3 +98,4 @@ class TestServiceReport(FrappeTestCase):
 		self.assertEqual(len(rows), 1)
 		self.assertEqual(rows[0]["user"], self.user_b)
 		self.assertEqual(rows[0]["note"], "Foreign booking")
+		self.assertEqual(rows[0]["bill_type"], "Unbillable")

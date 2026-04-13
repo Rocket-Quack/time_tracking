@@ -4,6 +4,10 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, formatdate, getdate
 
+from time_tracking.time_tracking.bill_types import (
+	BILL_TYPE_BILLABLE,
+	normalize_bill_type,
+)
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	build_project_path_labels,
 	expand_project_assignments,
@@ -233,7 +237,7 @@ def _get_time_booking_rows(user, week_start_date):
 			"time_tracking_profile": profile_name,
 			"date": ["between", [week_start, week_end]],
 		},
-		fields=["project", "notes", "date", "duration_minutes"],
+		fields=["project", "notes", "date", "duration_minutes", "bill_type"],
 	)
 	if not bookings:
 		return []
@@ -246,11 +250,12 @@ def _get_time_booking_rows(user, week_start_date):
 			continue
 
 		note = booking.notes or ""
-		key = (booking.project, note)
+		bill_type = normalize_bill_type(booking.bill_type)
+		key = (booking.project, note, bill_type)
 
 		row = rows.get(key)
 		if not row:
-			row = {"project": booking.project, "note": note}
+			row = {"project": booking.project, "note": note, "bill_type": bill_type}
 			row.update({field: 0 for field in day_fields})
 			rows[key] = row
 
@@ -280,7 +285,8 @@ def _build_booking_minutes_map(bookings):
 	minutes_map = {}
 	for booking in bookings:
 		date_key = str(getdate(booking.date))
-		key = (booking.project, booking.notes or "", date_key)
+		bill_type = normalize_bill_type(getattr(booking, "bill_type", None))
+		key = (booking.project, booking.notes or "", bill_type, date_key)
 		minutes_map[key] = minutes_map.get(key, 0) + int(flt(booking.duration_minutes))
 	return minutes_map
 
@@ -384,7 +390,7 @@ def save_weekly_booking(data):
 			"time_tracking_profile": profile_name,
 			"date": ["between", [week_start, week_end]],
 		},
-		fields=["project", "notes", "date", "duration_minutes"],
+		fields=["project", "notes", "date", "duration_minutes", "bill_type"],
 	)
 	existing_minutes = _build_booking_minutes_map(existing_bookings) if existing_bookings else {}
 	existing_projects = {booking.project for booking in existing_bookings if booking.project}
@@ -425,6 +431,7 @@ def save_weekly_booking(data):
 		for row in rows:
 			row_project = row.get("project")
 			row_note = (row.get("note") or "").strip()
+			row_bill_type = normalize_bill_type(row.get("bill_type") or BILL_TYPE_BILLABLE)
 			hours = {field: _coerce_hours(row.get(field), field) for field in hour_fields}
 
 			if not row_project and not row_note and not any(hours.values()):
@@ -443,7 +450,7 @@ def save_weekly_booking(data):
 						if minutes <= 0:
 							continue
 						date_key = str(add_days(week_start, idx))
-						key = (row_project, row_note, date_key)
+						key = (row_project, row_note, row_bill_type, date_key)
 						row_not_bookable_minutes[key] = row_not_bookable_minutes.get(key, 0) + minutes
 					continue
 
@@ -455,7 +462,7 @@ def save_weekly_booking(data):
 						if minutes <= 0:
 							continue
 						date_key = str(add_days(week_start, idx))
-						key = (row_project, row_note, date_key)
+						key = (row_project, row_note, row_bill_type, date_key)
 						row_unassigned_minutes[key] = row_unassigned_minutes.get(key, 0) + minutes
 					continue
 
@@ -478,6 +485,7 @@ def save_weekly_booking(data):
 						"date": add_days(week_start, idx),
 						"project": row_project,
 						"notes": row_note,
+						"bill_type": row_bill_type,
 						"duration_minutes": minutes,
 					}
 				)
@@ -541,6 +549,7 @@ def save_weekly_booking(data):
 			doc.date = booking["date"]
 			doc.project = booking["project"]
 			doc.notes = booking.get("notes")
+			doc.bill_type = booking.get("bill_type")
 			doc.duration_minutes = booking["duration_minutes"]
 			doc.insert()
 	finally:

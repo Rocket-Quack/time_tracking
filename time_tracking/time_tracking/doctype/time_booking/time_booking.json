@@ -11,6 +11,7 @@
   "booking_code",
   "date",
   "project",
+  "bill_type",
   "duration_minutes",
   "notes"
  ],
@@ -47,6 +48,15 @@
    "in_list_view": 1,
    "label": "Project",
    "options": "Time Tracking Project",
+   "reqd": 1
+  },
+  {
+   "default": "Billable",
+   "fieldname": "bill_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Bill Type",
+   "options": "Billable\nUnbillable",
    "reqd": 1
   },
   {

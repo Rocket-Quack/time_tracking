@@ -314,6 +314,14 @@ def _require_project_assignment_setting():
 	return cint(frappe.db.get_single_value("Time Tracking Settings", "require_project_assignment") or 0)
 
 
+@frappe.whitelist()
+def get_profile_ui_settings():
+	return {
+		"track_target_adjustments": bool(_track_target_adjustments_enabled()),
+		"require_project_assignment": bool(_require_project_assignment_setting()),
+	}
+
+
 def get_permission_query_conditions(user):
 	if not user:
 		user = frappe.session.user

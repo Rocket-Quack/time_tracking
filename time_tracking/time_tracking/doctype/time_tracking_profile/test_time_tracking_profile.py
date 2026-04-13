@@ -109,3 +109,14 @@ class TestTimeTrackingProfileAssignments(FrappeTestCase):
 			},
 		)
 		self.assertTrue(vacation_entry)
+
+	def test_employee_can_load_profile_ui_settings_without_settings_read_access(self):
+		user = self._make_user("ui-settings")
+
+		frappe.set_user(user)
+		settings = frappe.call(
+			"time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.get_profile_ui_settings"
+		)
+
+		self.assertIn("track_target_adjustments", settings)
+		self.assertIn("require_project_assignment", settings)

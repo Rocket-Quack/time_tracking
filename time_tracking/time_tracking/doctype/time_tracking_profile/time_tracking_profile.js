@@ -11,16 +11,29 @@ function applyRateSettings(frm) {
 }
 
 const DEFAULT_WEEKS_PER_MONTH = 52 / 12;
-const SETTINGS_DOCTYPE = "Time Tracking Settings";
-const TRACK_TARGET_ADJUSTMENTS_FIELD = "track_target_adjustments";
-const REQUIRE_PROJECT_ASSIGNMENT_FIELD = "require_project_assignment";
+let profileUiSettingsPromise = null;
 
-function getTrackTargetAdjustmentsSetting(frm) {
-	return frappe.db
-		.get_single_value(SETTINGS_DOCTYPE, TRACK_TARGET_ADJUSTMENTS_FIELD)
-		.then((value) => {
-			return Number(value) === 1;
-		});
+function getProfileUiSettings() {
+	if (!profileUiSettingsPromise) {
+		profileUiSettingsPromise = frappe
+			.call({
+				method: "time_tracking.time_tracking.doctype.time_tracking_profile.time_tracking_profile.get_profile_ui_settings",
+			})
+			.then((response) => response.message || {})
+			.catch(() => {
+				profileUiSettingsPromise = null;
+				return {
+					track_target_adjustments: false,
+					require_project_assignment: false,
+				};
+			});
+	}
+
+	return profileUiSettingsPromise;
+}
+
+function getTrackTargetAdjustmentsSetting() {
+	return getProfileUiSettings().then((settings) => Boolean(settings.track_target_adjustments));
 }
 
 function applyTargetAdjustmentVisibility(frm) {
@@ -28,7 +41,7 @@ function applyTargetAdjustmentVisibility(frm) {
 		return;
 	}
 
-	getTrackTargetAdjustmentsSetting(frm).then((enabled) => {
+	getTrackTargetAdjustmentsSetting().then((enabled) => {
 		frm.set_df_property("target_adjustments_section", "hidden", !enabled);
 		frm.set_df_property("target_adjustments", "hidden", !enabled);
 		frm.refresh_field("target_adjustments");
@@ -36,11 +49,7 @@ function applyTargetAdjustmentVisibility(frm) {
 }
 
 function getRequireProjectAssignmentSetting() {
-	return frappe.db
-		.get_single_value(SETTINGS_DOCTYPE, REQUIRE_PROJECT_ASSIGNMENT_FIELD)
-		.then((value) => {
-			return Number(value) === 1;
-		});
+	return getProfileUiSettings().then((settings) => Boolean(settings.require_project_assignment));
 }
 
 function applyProjectAssignmentVisibility(frm) {
@@ -121,7 +130,7 @@ function openTargetSwitchDialog(frm, newPeriod) {
 	const dialogTitle =
 		newPeriod === "Monthly" ? __("Switch to Monthly Target") : __("Switch to Weekly Target");
 
-	getTrackTargetAdjustmentsSetting(frm).then((trackAdjustments) => {
+	getTrackTargetAdjustmentsSetting().then((trackAdjustments) => {
 		const fields = [
 			{
 				fieldtype: "HTML",
@@ -221,7 +230,7 @@ function openTargetAdjustmentDialog(frm, targetPeriod, labelSuffix, direction) {
 	const actionLabel =
 		direction > 0 ? __("Increase {0}", [labelSuffix]) : __("Decrease {0}", [labelSuffix]);
 
-	getTrackTargetAdjustmentsSetting(frm).then((trackAdjustments) => {
+	getTrackTargetAdjustmentsSetting().then((trackAdjustments) => {
 		const fields = [
 			{
 				fieldname: "hours",

@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import frappe
+from frappe.permissions import has_permission
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import today
 
@@ -108,3 +109,13 @@ class TestTimeTrackingProject(FrappeTestCase):
 		self.assertEqual(project.actual_hours, 2)
 		self.assertEqual(project.actual_amount, 100)
 		self.assertEqual(project.actual_pay_amount, 100)
+
+	def test_employee_has_no_direct_project_read_access(self):
+		user = self._make_user("projectread")
+		project = self._make_project(self._unique("Restricted Read"))
+
+		frappe.set_user(user)
+
+		self.assertFalse(has_permission("Time Tracking Project", "read", doc=project.name))
+		with self.assertRaises(frappe.PermissionError):
+			frappe.client.get("Time Tracking Project", project.name)

@@ -894,6 +894,10 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		$wrap.animate({ scrollLeft: Math.max(0, headerLeft - padding) }, 150);
 	}
 
+	function getDayColumnIndex(dayIndex) {
+		return Number(dayIndex) + 4;
+	}
+
 	function highlightDayColumn(dayIndex) {
 		if (dayIndex === null || dayIndex === undefined) {
 			return;
@@ -902,7 +906,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 			clearTimeout(highlightTimer);
 			highlightTimer = null;
 		}
-		const dayColumnIndex = dayIndex + 3;
+		const dayColumnIndex = getDayColumnIndex(dayIndex);
 		$table.find(".wb-day-highlight").removeClass("wb-day-highlight");
 		const $header = $table.find(`.wb-day-header[data-day="${dayIndex}"]`);
 		const $bodyCells = $rows.find(`tr:not(.wb-divider-row) td:nth-child(${dayColumnIndex})`);
@@ -1157,7 +1161,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 			}
 			const dateStr = start.clone().add(offset, "days").format("YYYY-MM-DD");
 			if (holidaySet.has(dateStr)) {
-				const columnIndex = offset + 3;
+				const columnIndex = getDayColumnIndex(offset);
 				const holidayMinutes = Math.round(state.holiday_hours_per_day * 60);
 				const holidayLabel = holidayMinutes
 					? `${__("Feiertag")} ${formatMinutes(holidayMinutes)}`

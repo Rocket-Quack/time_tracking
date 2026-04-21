@@ -156,7 +156,7 @@ def update_project_metrics(project_name):
 
 def _calculate_project_metrics(doc):
 	if doc.is_group:
-		totals = _get_group_totals(doc.name)
+		totals = _get_group_totals(doc)
 		total_budget_hours = totals.get("total_budget_hours")
 		total_budget_amount = totals.get("total_budget_amount")
 		actual_hours = totals.get("actual_hours")
@@ -191,7 +191,7 @@ def _calculate_project_metrics(doc):
 	}
 
 
-def _get_group_totals(project_name):
+def _get_group_totals(project):
 	totals = {
 		"total_budget_hours": 0,
 		"total_budget_amount": 0,
@@ -200,9 +200,14 @@ def _get_group_totals(project_name):
 		"actual_pay_amount": 0,
 	}
 
+	own_actual_hours, own_actual_amount, own_actual_pay_amount = _get_leaf_actuals(project)
+	totals["actual_hours"] = flt(own_actual_hours)
+	totals["actual_amount"] = flt(own_actual_amount)
+	totals["actual_pay_amount"] = flt(own_actual_pay_amount)
+
 	children = frappe.get_all(
 		"Time Tracking Project",
-		filters={"parent_time_tracking_project": project_name},
+		filters={"parent_time_tracking_project": project.name},
 		fields=[
 			"total_budget_hours",
 			"total_budget_amount",
@@ -374,7 +379,7 @@ def build_project_path_labels(project_names):
 	return labels
 
 
-def expand_project_assignments(project_names, include_not_bookable=True):
+def expand_project_assignments(project_names, include_not_bookable=True, include_assigned_groups=False):
 	"""Expand assigned projects to leaf nodes, including group descendants."""
 	if not project_names:
 		return []
@@ -420,6 +425,8 @@ def expand_project_assignments(project_names, include_not_bookable=True):
 			if include_not_bookable or not row.not_bookable:
 				_add(row.name)
 			continue
+		if include_assigned_groups and (include_not_bookable or not row.not_bookable):
+			_add(row.name)
 		group_rows.append(row)
 
 	for row in group_rows:

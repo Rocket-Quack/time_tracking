@@ -18,7 +18,8 @@ The weekly booking UI provides:
 - Note is required for any row with entered data
 - Time is required for any row with a project or note
 - Duration must be a multiple of the configured increment (default 15 minutes)
-- Projects that are Not Bookable or group nodes cannot be booked
+- Projects that are Not Bookable cannot be booked
+- Group projects can only be booked when the corresponding setting is enabled
 
 ## Workflow: weekly booking save (example)
 ```mermaid

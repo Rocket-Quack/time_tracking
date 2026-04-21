@@ -39,3 +39,7 @@ def get_current_year_holiday_list_status():
 		"exists": cint(status.get("exists")),
 		"doctype": "Time Tracking Holiday List",
 	}
+
+
+def allow_group_project_booking():
+	return cint(frappe.db.get_single_value("Time Tracking Settings", "allow_group_project_booking") or 0)

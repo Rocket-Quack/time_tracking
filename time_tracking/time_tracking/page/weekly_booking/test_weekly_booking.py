@@ -4,6 +4,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from time_tracking.time_tracking.page.weekly_booking.weekly_booking import (
+	get_assigned_projects,
 	get_weekly_booking,
 	save_weekly_booking,
 )
@@ -14,6 +15,7 @@ class TestWeeklyBooking(FrappeTestCase):
 		frappe.set_user("Administrator")
 		frappe.db.set_single_value("Time Tracking Settings", "require_project_assignment", 0)
 		frappe.db.set_single_value("Time Tracking Settings", "enable_holiday_list", 0)
+		frappe.db.set_single_value("Time Tracking Settings", "allow_group_project_booking", 0)
 
 	def _unique_email(self, prefix):
 		return f"{prefix}-{frappe.generate_hash(length=8)}@example.com"
@@ -194,3 +196,48 @@ class TestWeeklyBooking(FrappeTestCase):
 					}
 				)
 			)
+
+	def test_group_project_is_available_and_bookable_when_setting_enabled(self):
+		user = self._make_user("weekly-group")
+		group = (
+			frappe.get_doc(
+				{
+					"doctype": "Time Tracking Project",
+					"project_name": f"WeeklyGroup-{frappe.generate_hash(length=6)}",
+					"is_group": 1,
+				}
+			)
+			.insert(ignore_permissions=True)
+			.name
+		)
+		self._make_profile(user, group)
+		frappe.db.set_single_value("Time Tracking Settings", "allow_group_project_booking", 1)
+
+		frappe.set_user(user)
+		projects = get_assigned_projects(user=user)
+		self.assertIn(group, {project.name for project in projects})
+
+		save_weekly_booking(
+			json.dumps(
+				{
+					"user": user,
+					"week_start_date": "2026-04-13",
+					"rows": [
+						{
+							"project": group,
+							"note": "Grouped work",
+							"monday_hours": 1,
+							"tuesday_hours": 0,
+							"wednesday_hours": 0,
+							"thursday_hours": 0,
+							"friday_hours": 0,
+							"saturday_hours": 0,
+							"sunday_hours": 0,
+						}
+					],
+				}
+			)
+		)
+
+		result = get_weekly_booking(week_start_date="2026-04-13")
+		self.assertTrue(any(row["project"] == group for row in result["rows"]))

@@ -13,6 +13,9 @@ from time_tracking.time_tracking.bill_types import (
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	expand_project_assignments,
 )
+from time_tracking.time_tracking.doctype.time_tracking_settings.time_tracking_settings import (
+	allow_group_project_booking,
+)
 from time_tracking.time_tracking.vacation_utils import (
 	get_allow_negative_vacation_balance,
 	get_hours_per_vacation_day,
@@ -88,7 +91,13 @@ class TimeBooking(Document):
 		if not assigned:
 			return set()
 
-		return set(expand_project_assignments(assigned, include_not_bookable=True))
+		return set(
+			expand_project_assignments(
+				assigned,
+				include_not_bookable=True,
+				include_assigned_groups=bool(allow_group_project_booking()),
+			)
+		)
 
 	def _validate_profile_permission(self):
 		if not self.time_tracking_profile:
@@ -106,7 +115,7 @@ class TimeBooking(Document):
 			frappe.throw(_("Project is required for bookings."))
 
 		is_group = frappe.db.get_value("Time Tracking Project", self.project, "is_group")
-		if is_group:
+		if is_group and not allow_group_project_booking():
 			frappe.throw(_("Project {0} is a group and cannot be booked.").format(self.project))
 
 		is_not_bookable = frappe.db.get_value("Time Tracking Project", self.project, "not_bookable")

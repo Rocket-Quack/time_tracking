@@ -13,6 +13,7 @@ from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_pro
 class TestTimeTrackingProject(FrappeTestCase):
 	def setUp(self):
 		frappe.set_user("Administrator")
+		frappe.db.set_single_value("Time Tracking Settings", "allow_group_project_booking", 0)
 
 	def _unique(self, prefix):
 		return f"{prefix}-{frappe.generate_hash(length=8)}"
@@ -109,6 +110,47 @@ class TestTimeTrackingProject(FrappeTestCase):
 		self.assertEqual(project.actual_hours, 2)
 		self.assertEqual(project.actual_amount, 100)
 		self.assertEqual(project.actual_pay_amount, 100)
+
+	def test_group_metrics_include_direct_group_bookings(self):
+		user = self._make_user("group-metrics")
+		self._make_profile(user)
+		frappe.db.set_single_value("Time Tracking Settings", "allow_group_project_booking", 1)
+
+		group = self._make_project(self._unique("Metrics Group"), is_group=1)
+		group.bill_rate = 100
+		group.pay_rate = 50
+		group.pay_rate_source = "Project"
+		group.save(ignore_permissions=True)
+
+		child = self._make_project(self._unique("Metrics Child"), parent=group.name, is_group=0)
+		child.bill_rate = 100
+		child.pay_rate = 50
+		child.pay_rate_source = "Project"
+		child.save(ignore_permissions=True)
+
+		profile = frappe.get_doc("Time Tracking Profile", user)
+		profile.append("project_assignments", {"project": group.name, "active": 1})
+		profile.save(ignore_permissions=True)
+
+		for project_name in (group.name, child.name):
+			frappe.get_doc(
+				{
+					"doctype": "Time Booking",
+					"time_tracking_profile": user,
+					"date": today(),
+					"project": project_name,
+					"bill_type": "Billable",
+					"duration_minutes": 60,
+					"notes": f"{project_name} booking",
+				}
+			).insert(ignore_permissions=True)
+
+		update_project_metrics(group.name)
+		group.reload()
+
+		self.assertEqual(group.actual_hours, 2)
+		self.assertEqual(group.actual_amount, 200)
+		self.assertEqual(group.actual_pay_amount, 100)
 
 	def test_employee_has_no_direct_project_read_access(self):
 		user = self._make_user("projectread")

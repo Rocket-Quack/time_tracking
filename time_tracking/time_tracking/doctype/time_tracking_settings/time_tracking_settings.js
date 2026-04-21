@@ -85,6 +85,9 @@ frappe.ui.form.on("Time Tracking Settings", {
 				body: [
 					__("Controls time entry and validation (date format, rounding increment)."),
 					__(
+						"Enable group project booking only when teams are expected to book directly on parent projects."
+					),
+					__(
 						"Example: Use a 15-minute increment to align all bookings to quarter-hour slots."
 					),
 				].join(" "),

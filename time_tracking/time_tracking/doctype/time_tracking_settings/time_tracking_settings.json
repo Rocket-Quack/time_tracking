@@ -9,6 +9,7 @@
   "booking_help_html",
   "weekly_booking_day_label_format",
   "time_booking_increment_minutes",
+  "allow_group_project_booking",
   "team_tab",
   "team_section",
   "team_help_html",
@@ -82,6 +83,13 @@
    "fieldtype": "Int",
    "label": "Time Booking Increment (Minutes)",
    "min_value": "1"
+  },
+  {
+   "default": "0",
+   "description": "Allow time bookings directly on group projects.",
+   "fieldname": "allow_group_project_booking",
+   "fieldtype": "Check",
+   "label": "Allow Group Project Booking"
   },
   {
    "fieldname": "team_tab",

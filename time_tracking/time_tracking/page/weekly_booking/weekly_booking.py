@@ -12,6 +12,9 @@ from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_pro
 	build_project_path_labels,
 	expand_project_assignments,
 )
+from time_tracking.time_tracking.doctype.time_tracking_settings.time_tracking_settings import (
+	allow_group_project_booking,
+)
 from time_tracking.time_tracking.overtime_utils import (
 	get_holiday_dates_for_range,
 	get_weekly_forecast,
@@ -155,7 +158,11 @@ def _get_assigned_projects(user, profile_name=None):
 	)
 	project_names = [row.project for row in assignments if row.project]
 	if project_names:
-		project_names = expand_project_assignments(project_names, include_not_bookable=True)
+		project_names = expand_project_assignments(
+			project_names,
+			include_not_bookable=True,
+			include_assigned_groups=bool(allow_group_project_booking()),
+		)
 	vacation_project = get_vacation_project()
 	if vacation_project and vacation_project not in project_names:
 		project_names.append(vacation_project)
@@ -167,7 +174,7 @@ def _get_assigned_projects(user, profile_name=None):
 
 	projects = frappe.get_all(
 		"Time Tracking Project",
-		filters={"name": ["in", project_names], "is_group": 0, "not_bookable": 0},
+		filters={"name": ["in", project_names], "not_bookable": 0},
 		fields=["name", "project_name"],
 	)
 	project_map = {project.name: project for project in projects}
@@ -476,7 +483,7 @@ def save_weekly_booking(data):
 					frappe.throw(_("Project {0} does not exist.").format(row_project))
 
 				is_group = frappe.db.get_value("Time Tracking Project", row_project, "is_group")
-				if is_group:
+				if is_group and not allow_group_project_booking():
 					frappe.throw(_("Project {0} is a group and cannot be booked.").format(row_project))
 
 			for idx, field in enumerate(hour_fields):

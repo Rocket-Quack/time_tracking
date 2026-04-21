@@ -190,9 +190,6 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
 		controls.project.get_query = function () {
 			return {
 				query: "time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project.project_link_query",
-				filters: {
-					is_group: 0,
-				},
 			};
 		};
 	}

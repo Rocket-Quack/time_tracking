@@ -6,6 +6,9 @@ from frappe.utils import flt
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
 	expand_project_assignments,
 )
+from time_tracking.time_tracking.doctype.time_tracking_settings.time_tracking_settings import (
+	allow_group_project_booking,
+)
 
 
 class WeeklyBookingData(Document):
@@ -46,7 +49,13 @@ class WeeklyBookingData(Document):
 		if not assigned:
 			return set()
 
-		return set(expand_project_assignments(assigned, include_not_bookable=True))
+		return set(
+			expand_project_assignments(
+				assigned,
+				include_not_bookable=True,
+				include_assigned_groups=bool(allow_group_project_booking()),
+			)
+		)
 
 	def _validate_rows(self):
 		assigned_projects = self._get_assigned_project_names()
@@ -87,7 +96,7 @@ class WeeklyBookingData(Document):
 					frappe.throw(_("Project {0} does not exist.").format(row_project))
 
 				is_group = frappe.db.get_value("Time Tracking Project", row_project, "is_group")
-				if is_group:
+				if is_group and not allow_group_project_booking():
 					frappe.throw(_("Project {0} is a group and cannot be booked.").format(row_project))
 
 

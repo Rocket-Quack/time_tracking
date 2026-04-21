@@ -433,15 +433,21 @@ def save_weekly_booking(data):
 			row_note = (row.get("note") or "").strip()
 			row_bill_type = normalize_bill_type(row.get("bill_type") or BILL_TYPE_BILLABLE)
 			hours = {field: _coerce_hours(row.get(field), field) for field in hour_fields}
+			has_hours = any(hours.values())
 
-			if not row_project and not row_note and not any(hours.values()):
+			if not row_project and not row_note and not has_hours:
 				continue
 
-			if any(hours.values()):
-				if not row_project:
-					frappe.throw(_("Project is required for bookings."))
-				if not row_note:
+			if not row_project:
+				frappe.throw(_("Project is required for bookings."))
+
+			if not row_note:
+				if has_hours:
 					frappe.throw(_("Note is required for bookings."))
+				frappe.throw(_("Note and time are required for bookings."))
+
+			if not has_hours:
+				frappe.throw(_("Time is required for bookings."))
 
 			if row_project:
 				if row_project in not_bookable_projects:

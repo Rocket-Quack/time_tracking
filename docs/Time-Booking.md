@@ -13,8 +13,10 @@ The weekly booking UI provides:
 - Time is stored internally as minutes
 
 ## Booking rules
-- Project is required for any row with hours
-- Note is required for any row with hours
+- Any non-empty weekly booking row must include a project, a note, and time
+- Project is required for any row with entered data
+- Note is required for any row with entered data
+- Time is required for any row with a project or note
 - Duration must be a multiple of the configured increment (default 15 minutes)
 - Projects that are Not Bookable or group nodes cannot be booked
 

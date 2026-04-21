@@ -61,22 +61,34 @@ class WeeklyBookingData(Document):
 		]
 
 		for row in self.bookings or []:
+			row_project = row.project
+			row_note = (row.note or "").strip()
 			hours = [flt(row.get(field)) for field in day_fields]
-			if any(hours) and not row.project:
+			has_hours = any(hours)
+			if not row_project and not row_note and not has_hours:
+				continue
+
+			if not row_project:
 				frappe.throw(_("Project is required for bookings."))
-			if any(hours) and not (row.note or "").strip():
-				frappe.throw(_("Note is required for bookings."))
 
-			if row.project:
-				if assigned_projects is not None and row.project not in assigned_projects:
-					frappe.throw(_("Project {0} is not assigned to your profile.").format(row.project))
+			if not row_note:
+				if has_hours:
+					frappe.throw(_("Note is required for bookings."))
+				frappe.throw(_("Note and time are required for bookings."))
 
-				if not frappe.db.exists("Time Tracking Project", row.project):
-					frappe.throw(_("Project {0} does not exist.").format(row.project))
+			if not has_hours:
+				frappe.throw(_("Time is required for bookings."))
 
-				is_group = frappe.db.get_value("Time Tracking Project", row.project, "is_group")
+			if row_project:
+				if assigned_projects is not None and row_project not in assigned_projects:
+					frappe.throw(_("Project {0} is not assigned to your profile.").format(row_project))
+
+				if not frappe.db.exists("Time Tracking Project", row_project):
+					frappe.throw(_("Project {0} does not exist.").format(row_project))
+
+				is_group = frappe.db.get_value("Time Tracking Project", row_project, "is_group")
 				if is_group:
-					frappe.throw(_("Project {0} is a group and cannot be booked.").format(row.project))
+					frappe.throw(_("Project {0} is a group and cannot be booked.").format(row_project))
 
 
 def _is_admin(user=None):

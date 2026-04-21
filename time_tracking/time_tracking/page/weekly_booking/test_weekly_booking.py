@@ -107,3 +107,90 @@ class TestWeeklyBooking(FrappeTestCase):
 
 		self.assertEqual(len(rows), 2)
 		self.assertEqual({row["bill_type"] for row in rows}, {"Billable", "Unbillable"})
+
+	def test_project_only_row_is_rejected(self):
+		user = self._make_user("project-only")
+		project = self._make_project(f"ProjectOnly-{frappe.generate_hash(length=6)}")
+		self._make_profile(user, project)
+
+		frappe.set_user(user)
+		with self.assertRaisesRegex(frappe.ValidationError, "Note and time are required for bookings."):
+			save_weekly_booking(
+				json.dumps(
+					{
+						"user": user,
+						"week_start_date": "2026-04-13",
+						"rows": [
+							{
+								"project": project,
+								"note": "",
+								"monday_hours": 0,
+								"tuesday_hours": 0,
+								"wednesday_hours": 0,
+								"thursday_hours": 0,
+								"friday_hours": 0,
+								"saturday_hours": 0,
+								"sunday_hours": 0,
+							}
+						],
+					}
+				)
+			)
+
+	def test_project_and_note_without_time_is_rejected(self):
+		user = self._make_user("note-no-time")
+		project = self._make_project(f"NoTime-{frappe.generate_hash(length=6)}")
+		self._make_profile(user, project)
+
+		frappe.set_user(user)
+		with self.assertRaisesRegex(frappe.ValidationError, "Time is required for bookings."):
+			save_weekly_booking(
+				json.dumps(
+					{
+						"user": user,
+						"week_start_date": "2026-04-13",
+						"rows": [
+							{
+								"project": project,
+								"note": "No time yet",
+								"monday_hours": 0,
+								"tuesday_hours": 0,
+								"wednesday_hours": 0,
+								"thursday_hours": 0,
+								"friday_hours": 0,
+								"saturday_hours": 0,
+								"sunday_hours": 0,
+							}
+						],
+					}
+				)
+			)
+
+	def test_time_without_note_is_rejected(self):
+		user = self._make_user("time-no-note")
+		project = self._make_project(f"NoNote-{frappe.generate_hash(length=6)}")
+		self._make_profile(user, project)
+
+		frappe.set_user(user)
+		with self.assertRaisesRegex(frappe.ValidationError, "Note is required for bookings."):
+			save_weekly_booking(
+				json.dumps(
+					{
+						"user": user,
+						"week_start_date": "2026-04-13",
+						"rows": [
+							{
+								"project": project,
+								"note": "",
+								"monday_hours": 1,
+								"tuesday_hours": 0,
+								"wednesday_hours": 0,
+								"thursday_hours": 0,
+								"friday_hours": 0,
+								"saturday_hours": 0,
+								"sunday_hours": 0,
+							}
+						],
+					}
+				)
+			)

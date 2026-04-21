@@ -748,10 +748,26 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		return hasHours;
 	}
 
-	function rowHasProjectAndNote($row) {
+	function getRowValidationMessage($row) {
 		const project = $row.find(".wb-project").val();
 		const note = ($row.find(".wb-note").val() || "").trim();
-		return Boolean(project && note);
+		const hasHours = rowHasHours($row);
+
+		if (!project && !note && !hasHours) {
+			return "";
+		}
+		if (!project) {
+			return __("Project is required for bookings.");
+		}
+		if (!note) {
+			return hasHours
+				? __("Note is required for bookings.")
+				: __("Note and time are required for bookings.");
+		}
+		if (!hasHours) {
+			return __("Time is required for bookings.");
+		}
+		return "";
 	}
 
 	function buildSignatureFromRow($row) {
@@ -1509,21 +1525,21 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 			return;
 		}
 
-		let hasMissingHours = false;
+		let validationMessage = "";
 		getDataRows().each(function () {
 			const $row = $(this);
 			if ($row.hasClass("wb-row-suggested") && !rowHasHours($row)) {
 				return;
 			}
-			if (rowHasProjectAndNote($row) && !rowHasHours($row)) {
-				hasMissingHours = true;
+			validationMessage = getRowValidationMessage($row);
+			if (validationMessage) {
 				return false;
 			}
 		});
-		if (hasMissingHours) {
+		if (validationMessage) {
 			frappe.msgprint({
 				title: __("Missing Value"),
-				message: __("Please enter time for rows that have a project and note."),
+				message: validationMessage,
 				indicator: "red",
 			});
 			return;

@@ -77,6 +77,10 @@ def _format_decimal(value, separator):
 	return hours
 
 
+def _get_csv_delimiter(separator):
+	return ";" if separator == "," else ","
+
+
 def _get_duration_format(duration_format):
 	raw = (duration_format or "Decimal Hours").strip()
 	fmt = raw.split("(", 1)[0].strip().upper()
@@ -109,9 +113,28 @@ def _format_duration(duration_minutes, duration_format, export_format, separator
 		return f"{sign}{hours}:{minutes:02d}"
 
 	hours_value = total_minutes / 60
-	if export_format == "XLSX" and separator == ".":
+	if export_format == "XLSX":
 		return round(hours_value, 2)
 	return _format_decimal(hours_value, separator)
+
+
+def _get_xlsx_styles(duration_format, duration_column_index):
+	styles = [{"bold": True}]
+	row_styles = {0: [0]}
+	column_styles = {}
+
+	if duration_format == "DECIMAL_HOURS":
+		styles.append({"num_format": "0.00"})
+		column_styles[duration_column_index] = [1]
+	elif duration_format == "MINUTES":
+		styles.append({"num_format": "0"})
+		column_styles[duration_column_index] = [1]
+
+	return {
+		"styles": styles,
+		"row_styles": row_styles,
+		"column_styles": column_styles,
+	}
 
 
 @frappe.whitelist()
@@ -162,7 +185,7 @@ def export_bookings(
 	if user:
 		query = query.where(ttp.user == user)
 
-	query = query.orderby(tb.date, tb.project, ttp.user)
+	query = query.orderby(tb.date).orderby(usr.full_name).orderby(ttp.user).orderby(tb.project)
 	rows = query.run(as_dict=True)
 
 	project_names_used = {row.project for row in rows if row.project}
@@ -192,7 +215,11 @@ def export_bookings(
 		data.append([date_value, employee, project_label, bill_type, row.note or "", hours_display])
 
 	if export_format == "XLSX":
-		output = make_xlsx([columns, *data], _("Time Tracking Export"))
+		output = make_xlsx(
+			[columns, *data],
+			_("Time Tracking Export"),
+			styles=_get_xlsx_styles(duration_format_key, len(columns) - 1),
+		)
 		content = output.getvalue() if hasattr(output, "getvalue") else output
 		if isinstance(content, str):
 			content = content.encode("utf-8")
@@ -203,7 +230,7 @@ def export_bookings(
 		return
 
 	buffer = io.StringIO()
-	writer = csv.writer(buffer)
+	writer = csv.writer(buffer, delimiter=_get_csv_delimiter(separator))
 	writer.writerow(columns)
 	writer.writerows(data)
 	content = buffer.getvalue().encode("utf-8")

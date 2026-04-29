@@ -68,7 +68,7 @@ frappe.pages["time-tracking-export"].on_page_load = function (wrapper) {
 	const $intro = $(
 		`<div class="tt-admin-page-intro">
             <p class="text-muted mb-2">
-                ${__("Export time bookings with linked project and user data.")}
+				${__("Export time bookings with linked project and employee data.")}
             </p>
         </div>`
 	);

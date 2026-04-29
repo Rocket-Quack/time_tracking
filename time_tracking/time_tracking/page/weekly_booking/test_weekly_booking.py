@@ -241,3 +241,31 @@ class TestWeeklyBooking(FrappeTestCase):
 
 		result = get_weekly_booking(week_start_date="2026-04-13")
 		self.assertTrue(any(row["project"] == group for row in result["rows"]))
+
+	def test_existing_unassigned_booking_includes_project_label(self):
+		user = self._make_user("legacy-project")
+		assigned_project = self._make_project(f"Assigned-{frappe.generate_hash(length=6)}")
+		legacy_project = self._make_project(f"Legacy-{frappe.generate_hash(length=6)}")
+		legacy_project_label = frappe.db.get_value(
+			"Time Tracking Project", legacy_project, "project_name"
+		)
+		self._make_profile(user, assigned_project)
+
+		frappe.set_user(user)
+		frappe.get_doc(
+			{
+				"doctype": "Time Booking",
+				"time_tracking_profile": user,
+				"date": "2026-04-13",
+				"project": legacy_project,
+				"duration_minutes": 60,
+				"notes": "Imported legacy booking",
+			}
+		).insert(ignore_permissions=True)
+
+		assigned_projects = get_assigned_projects(user=user)
+		self.assertNotIn(legacy_project, {project.name for project in assigned_projects})
+
+		result = get_weekly_booking(week_start_date="2026-04-13")
+		self.assertTrue(any(row["project"] == legacy_project for row in result["rows"]))
+		self.assertEqual(result["project_labels"][legacy_project], legacy_project_label)

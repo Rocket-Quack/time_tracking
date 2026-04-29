@@ -120,3 +120,23 @@ class TestTimeTrackingProfileAssignments(FrappeTestCase):
 
 		self.assertIn("track_target_adjustments", settings)
 		self.assertIn("require_project_assignment", settings)
+
+	def test_duplicate_project_assignment_error_uses_project_label(self):
+		user = self._make_user("duplicate-project")
+		parent_label = f"Parent-{frappe.generate_hash(length=6)}"
+		parent = self._make_project(parent_label)
+		project = frappe.get_doc(
+			{
+				"doctype": "Time Tracking Project",
+				"project_name": f"Child-{frappe.generate_hash(length=6)}",
+				"parent_time_tracking_project": parent,
+			}
+		).insert(ignore_permissions=True)
+
+		frappe.set_user("Administrator")
+		with self.assertRaises(frappe.ValidationError) as exc:
+			self._make_profile(user, [project.name, project.name])
+
+		self.assertIn(parent_label, str(exc.exception))
+		self.assertIn(project.project_name, str(exc.exception))
+		self.assertNotIn(project.name, str(exc.exception))

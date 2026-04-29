@@ -25,6 +25,39 @@ frappe.listview_settings["Time Tracking Project"] = {
 			});
 		};
 
+		const removeInvalidParentFilters = () => {
+			const area = filterArea();
+			if (!area || !area.filters) {
+				return false;
+			}
+
+			let changed = false;
+			const filters = area.filters.slice();
+			filters.forEach((filter) => {
+				const filterField = filter.fieldname || (filter.df && filter.df.fieldname) || "";
+				const rawValue =
+					filter.value !== undefined
+						? filter.value
+						: filter.get_value
+							? filter.get_value()
+							: filter[3];
+				if (filterField !== "parent_time_tracking_project") {
+					return;
+				}
+				if (rawValue !== "" && rawValue !== null && rawValue !== "Time Tracking Project") {
+					return;
+				}
+				changed = true;
+				if (area.remove_filter) {
+					area.remove_filter(filter);
+				} else if (filter.remove) {
+					filter.remove();
+				}
+			});
+
+			return changed;
+		};
+
 		const addFilter = (fieldname, value) => {
 			const area = filterArea();
 			if (!area) {
@@ -66,6 +99,10 @@ frappe.listview_settings["Time Tracking Project"] = {
 			applyFilter("not_bookable", 1);
 		});
 		listview.page.add_inner_button(__("Clear Filters"), clearFilters);
+
+		if (removeInvalidParentFilters()) {
+			listview.refresh();
+		}
 	},
 	get_indicator(doc) {
 		const status = (doc.project_status || "Active").trim();

@@ -337,6 +337,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 	const state = {
 		projects_loaded: false,
 		projects: [],
+		project_labels: {},
 		increment_minutes: 15,
 		day_label_format: "DD.MM.YYYY",
 		weekly_target_hours: null,
@@ -606,10 +607,18 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 
 		if (selected && !selectedFound) {
 			const value = escape(selected);
-			options.push(`<option value="${value}" selected>${value}</option>`);
+			const fallbackLabel = escape(state.project_labels[selected] || selected);
+			options.push(`<option value="${value}" selected>${fallbackLabel}</option>`);
 		}
 
 		return options.join("");
+	}
+
+	function mergeProjectLabels(labels) {
+		if (!labels || typeof labels !== "object") {
+			return;
+		}
+		state.project_labels = Object.assign({}, state.project_labels, labels);
 	}
 
 	function normalizeBillType(value) {
@@ -1090,6 +1099,14 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 				}
 				const projects = Array.isArray(message) ? message : message.projects || [];
 				state.projects = projects;
+				mergeProjectLabels(
+					projects.reduce((acc, project) => {
+						if (project && project.name) {
+							acc[project.name] = project.path_label || project.project_name || project.name;
+						}
+						return acc;
+					}, {})
+				);
 				state.projects_loaded = true;
 				refreshProjectSelectOptions();
 				$addRowButton.prop("disabled", false);
@@ -1109,7 +1126,7 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 		}
 		state.projects_loaded = false;
 		if (document.body && document.body.dataset.route === "weekly-booking") {
-			loadProjects({ force_reload: true });
+			loadWeek();
 		}
 	}
 
@@ -1234,6 +1251,8 @@ frappe.pages["weekly-booking"].on_page_load = function (wrapper) {
 				updateDayHeaders();
 
 				const rows = message.rows || [];
+				state.project_labels = {};
+				mergeProjectLabels(message.project_labels || {});
 				const suggestions = buildSuggestionRows(message.previous_week_rows || [], rows);
 				state.loaded_week_total_minutes = calculateWeekMinutes(rows);
 				state.saved_row_counts = buildSavedRowCounts(rows);

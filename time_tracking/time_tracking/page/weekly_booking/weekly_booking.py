@@ -178,7 +178,7 @@ def _get_assigned_projects(user, profile_name=None):
 		fields=["name", "project_name"],
 	)
 	project_map = {project.name: project for project in projects}
-	path_labels = build_project_path_labels(list(project_map.keys()))
+	path_labels = _get_project_labels(list(project_map.keys()))
 	ordered = []
 	for name in project_names:
 		if name not in project_map:
@@ -187,6 +187,25 @@ def _get_assigned_projects(user, profile_name=None):
 		project.path_label = path_labels.get(name, project.project_name or name)
 		ordered.append(project)
 	return ordered
+
+
+def _get_project_labels(project_names):
+	project_names = [name for name in project_names if name]
+	if not project_names:
+		return {}
+
+	projects = frappe.get_all(
+		"Time Tracking Project",
+		filters={"name": ["in", project_names]},
+		fields=["name", "project_name"],
+	)
+	project_map = {project.name: project for project in projects}
+	path_labels = build_project_path_labels(list(project_map.keys()))
+
+	return {
+		name: path_labels.get(name, project.project_name or name)
+		for name, project in project_map.items()
+	}
 
 
 def _get_assigned_project_names(user):
@@ -347,6 +366,12 @@ def get_weekly_booking(user=None, week_start_date=None):
 	)
 
 	response["vacation"] = _get_vacation_summary(profile_name, week_start_date)
+	project_names = {
+		row.get("project")
+		for row in [*response["rows"], *response["previous_week_rows"]]
+		if row.get("project")
+	}
+	response["project_labels"] = _get_project_labels(list(project_names))
 	return response
 
 

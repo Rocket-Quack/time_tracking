@@ -4,6 +4,7 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, now_datetime
 
 from time_tracking.time_tracking.doctype.time_tracking_project.time_tracking_project import (
+	build_project_path_labels,
 	expand_project_assignments,
 )
 from time_tracking.time_tracking.vacation_utils import get_default_workdays_per_week
@@ -210,7 +211,10 @@ class TimeTrackingProfile(Document):
 				seen.add(project)
 
 		if duplicates:
-			project_list = ", ".join(sorted(duplicates))
+			project_labels = build_project_path_labels(list(duplicates))
+			project_list = ", ".join(
+				sorted(project_labels.get(project, project) for project in duplicates)
+			)
 			frappe.throw(_("Project {0} is already assigned to this profile.").format(project_list))
 
 	def _validate_project_assignment_permissions(self):

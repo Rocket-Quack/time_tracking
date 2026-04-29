@@ -1,6 +1,7 @@
 import frappe
 
 DEFAULT_WORKSPACE = "Time Tracking"
+DEFAULT_WORKSPACE_ROUTE = "/desk/time-tracking"
 
 
 def ensure_default_workspace(login_manager=None):
@@ -12,10 +13,12 @@ def ensure_default_workspace(login_manager=None):
 	if user_type != "System User":
 		return
 
-	if frappe.db.get_value("User", user, "default_workspace"):
-		return
-
 	if not frappe.db.exists("Workspace", DEFAULT_WORKSPACE):
 		return
 
-	frappe.db.set_value("User", user, "default_workspace", DEFAULT_WORKSPACE)
+	default_workspace = frappe.db.get_value("User", user, "default_workspace")
+	if default_workspace and default_workspace != DEFAULT_WORKSPACE:
+		return
+
+	# Work around Frappe's login redirect using `workspace.lower()` instead of a slug.
+	frappe.local.flags.home_page = DEFAULT_WORKSPACE_ROUTE

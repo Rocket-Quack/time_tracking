@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout app repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set lowercase image name
         shell: bash
@@ -58,7 +58,7 @@ jobs:
           echo "Using image tags: latest and $APP_VERSION"
 
       - name: Checkout frappe_docker
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: frappe/frappe_docker
           path: frappe_docker

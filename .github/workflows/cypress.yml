@@ -78,7 +78,7 @@ jobs:
           check-latest: true
 
       - name: Cache pip
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-cypress-${{ steps.runtime.outputs.frappe_branch }}-py${{ steps.runtime.outputs.python_version }}-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
